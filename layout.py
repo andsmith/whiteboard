@@ -1,7 +1,12 @@
 # Fixed params for app, dimensions are pixels or relative to w/h of window.
+import cv2
+
+PREC_BITS = 7  # number of bits to use for precision in fixed-point numbers
+PREC_SCALE = 2 ** PREC_BITS  # for cv2 draw commands
 
 COLORS_RGB = {'black': (0, 0, 0),
               'white': (255, 255, 255),
+              'off_white': (0xff, 0xfa, 0xf1),
               'red': (255, 0, 0),
               'green': (0, 255, 0),
               'neon green': (57, 255, 20),
@@ -20,34 +25,61 @@ COLORS_RGB = {'black': (0, 0, 0),
               'teal': (0, 128, 128),
               'navy': (0, 0, 128)}
 
+UI_LINE_THICKNESS = 2
 
-LAYOUT = {'win_size': (1200, 800),
+# Canvas is the main display window
+CANVAS_LAYOUT = {'win_size': (1200, 800),
+                 'win_name': 'Whiteboard Canvas',
+                 'bkg_color': COLORS_RGB['off_white'],
+                 'init_zoom': 1.0,  
+                 'init_origin': (0, 0),
+                 'zoom_bar': {'loc': {'x': [.85, .95],
+                                      'y': [.05, .475],
+                                      'orientation': 'vertical'}, }, }
 
-          'ctrl_pts': {'color': 'neon green',
-                       'radius': 10},
+# Control is the user input window.
+CONTROL_LAYOUT = {
+    'win_name': 'Whiteboard Controls',
+    'win_size': (800, 600),
+    'init_zoom': 2.0,  # wrt canvas window
+    'init_origin': (0, 0), # wrt canvas window
 
-          # equation box, centered on lower half of window, 90% width
-          'eqn_box': {'loc': {'x': (0.05, 0.95),
-                              'y': (0.55, 0.85)},
-                      'move_tab_corner': 'lower_right', },
 
-          # toolbox, strip on upper-right side of window, 10% width
-          'toolbox': {'loc': {'x': [.85, .95],
-                              'y': [.05, .40]},
-                      'line_widths': [1, 2, 3, 5, 8, 13]},
-          # color box, strip below toolbox, 10% width, 5% separation
-          'color_box_': {'loc': {'x': [.85, .95],
-                                 'y': [.45, .65]},
-                         'options': [['black', 'white'],
-                                     ['red', 'orange'],
-                                     ['blue', 'yellow'],
-                                     ['purple', 'green']]},
-          # zoom slider-bar, vertical, left side of window
-          'zoom_bar': {'loc': {'x': [.05, .15],
-                               'y': [.05, .40],
-                               'orientation': 'vertical'}, },
+    # toolbox, strip in the middle of the right side of the window
+    'toolbox': {'loc': {'x': [.85, .3],
+                        'y': [.05, .6]},
+                'line_widths': [1, 2, 3, 5, 8, 13]},
 
-          # Rewind/fast-forward style undo/redo buttons, horizontal strip at bottom
-          'undo_bar': {'loc': {'x': [.1, .9],
-                               'y': [.85, .95],
-                               'orientation': 'horizontal'}, }, }
+    # color box, strip below toolbox, 10% width, 5% separation
+    'color_box': {'loc': {'x': [.05, .3],
+                           'y': [.15, .6]},
+                   'options': [['black', 'white'],
+                               ['red', 'orange'],
+                               ['blue', 'yellow'],
+                               ['purple', 'green']]},
+
+    # zoom slider-bar, vertical, left side of window
+    'zoom_bar': {'loc': {'x': [.05, .15],
+                         'y': [.05, .40],
+                         'orientation': 'vertical'}, },
+}
+
+VECTORS = {'ctrl_pts': {'color': 'neon green',
+                        'radius': 10,
+                        'max_click_dist': 10  # max distance from ctrl pt to select it
+                        }}
+
+SLIDERS = {'indent': .05,  # fraction of bounding box length (right margin determined by label length)
+           'line_thickness': 2,  # fraction of bounding box width
+           'line_width': 0.1,  # fraction of bounding box width
+           'tab_width': 0.01,  # fraction of bounding box length
+           'tab_height': 0.5,  # fraction of bounding box width
+           'min_tab_width_px': 10,
+           'min_tab_height_px': 20,
+           'line_color': 'black',
+           'label_color': 'white',
+           'label_font': cv2.FONT_HERSHEY_SIMPLEX,
+           'tab_color': 'dark_gray',
+           'tab_text_color': 'light_gray',
+           'tab_text_size': 1.0,  # fraction of tab height
+           }

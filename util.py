@@ -2,11 +2,29 @@ import cv2
 import numpy as np
 
 
-def get_font_size(resolution):
+def get_font_size(bbox, orientation):
     """
-    Return a good fontScale and thickness for cv2.putText based on resolution.
+    Return a good fontScale and thickness for cv2.putText based on the size of the bounding box.
     """
-    return resolution[0] / 1000, resolution[0] // 1000
+    return .5,1
+    if orientation == 'horizontal':
+        resolution = bbox['x'][1] - bbox['x'][0]
+    else:
+        resolution = bbox['y'][1] - bbox['y'][0]
+
+    if resolution < 500:
+        font_scale = 0.5
+        thickness = 1
+    elif resolution < 1000:
+        font_scale = 1
+        thickness = 2
+    elif resolution < 2000:
+        font_scale = 2
+        thickness = 3
+    else:
+        font_scale = 3
+        thickness = 4
+    return font_scale, thickness
 
 
 def is_numeric(items):

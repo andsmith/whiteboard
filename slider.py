@@ -49,11 +49,14 @@ class Slider(Widget):
         x_min, x_max = self._bbox['x']
         y_min, y_max = self._bbox['y']
         w, h = x_max - x_min, y_max - y_min
-        self._font_scale, self._font_thickness = get_font_size((x_max - x_min, y_max - y_min))
+        
+        self._font_scale, self._font_thickness = get_font_size(self._bbox, self._orientation)
         label_width, label_height = self._get_max_label_dims()
 
         tab_wh_rel = SLIDERS['tab_width'], SLIDERS['tab_height']
+
         if self._orientation == 'horizontal':
+
             self._margin_px = SLIDERS['indent'] * w
 
             # tab dimensions
@@ -67,14 +70,14 @@ class Slider(Widget):
             self._label_spacing = self._margin_px
 
         else:
-            self._margin_px = SLIDERS['indent'] * h
 
+            self._margin_px = SLIDERS['indent'] * h
             # tab dimensions
             self._tab_wh = h * tab_wh_rel[0], w * tab_wh_rel[1]
             # line dimensions
             x_center = (x_min + x_max) // 2
-            length = h - label_height - 2 * self._margin_px
-            y = y_min + label_height + self._margin_px
+            length = h - label_height - 3 * self._margin_px
+            y = y_min + label_height + 2* self._margin_px
             self._line_endpoints = np.array([[x_center, y], [x_center, y + length]])
             self._label_spacing = self._margin_px
         self._line_endpoints = np.array(self._line_endpoints, dtype=np.int32)
@@ -92,7 +95,7 @@ class Slider(Widget):
             y = self._line_endpoints[0, 1]
             w, h = self._tab_wh
         else:
-            y_min, y_max = self._line_endpoints[0, 0], self._line_endpoints[1, 0]
+            y_min, y_max = self._line_endpoints[0, 1], self._line_endpoints[1, 1]
             x = self._line_endpoints[0, 0]
             y = y_min + self._cur_value_rel * (y_max - y_min)
             w, h = self._tab_wh[::-1]
@@ -115,17 +118,17 @@ class Slider(Widget):
         cv2.rectangle(img, tab_p1, tab_p2, self._tab_color, 5)
         # draw label
         label = self.get_value()[1]
+        (width, height), _ = cv2.getTextSize(label, self._label_font, self._font_scale, self._font_thickness)
 
         if self._orientation == 'horizontal':
-            (width, height), _ = cv2.getTextSize(label, self._label_font, self._font_scale, self._font_thickness)
             x = int(self._line_endpoints[0, 0] - self._label_spacing - width)
             y = int(self._line_endpoints[0, 1] + height // 2)
-            cv2.putText(img, label, (x, y), self._label_font, self._font_scale, self._label_color, self._font_thickness,
-                        lineType=cv2.LINE_AA)
-
         else:
-            pass
-        
+            x = int(self._line_endpoints[0, 0] - width // 2)
+            y = int(self._line_endpoints[0, 1] - self._label_spacing )
+        cv2.putText(img, label, (x, y), self._label_font, self._font_scale, self._label_color, self._font_thickness,
+                    lineType=cv2.LINE_AA)
+
         if show_bbox:
             draw_bbox(img, self._bbox, COLORS_RGB['white'], 1)
 

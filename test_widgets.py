@@ -28,12 +28,10 @@ class WidgetTester(object):
                 break
 
     def mouse_event(self, event, x, y, flags, param):
-        print(self._widget_with_mouse)
         if self._widget_with_mouse is not None:
             rv, _ = self._widget_with_mouse.mouse_event(event, x, y, flags, param)
             if rv == MouseReturnStates.released:
                 self._widget_with_mouse = None
-                print("!")
                 logging.info("Mouse released by widget %s" % self._widget_with_mouse)
         else:
             for widget in self._widgets:
@@ -45,8 +43,6 @@ class WidgetTester(object):
                     elif rv == MouseReturnStates.released:
                         logging.info("Mouse used by widget %s" % widget)
                         break  # used but not captured
-                    else:
-                        logging.info("Mouse not used by widget %s" % widget)
 
 
     def render(self):
@@ -61,10 +57,10 @@ def test_sliders():
     """
     One vertical and one horizontal.
     """
-    width = 20
+    width = 40
     length = 300
 
-    s1 = {'bbox': {'x': (100, 100 + width), 'y': (100, 100 + length)},
+    s1 = {'bbox': {'x': (100, 100 + width), 'y': (150, 150 + length)},
           'label': 'Vertical',
           'orientation': 'vertical',
           'values': [1, 100],
