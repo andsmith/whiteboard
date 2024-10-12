@@ -7,11 +7,11 @@ import numpy as np
 from layout import COLORS_RGB, SLIDERS
 import logging
 from util import get_font_size, in_bbox, is_numeric, draw_bbox
-from widgets import Widget
+from controls import Control
 from gui_components import MouseReturnStates
 
 
-class Slider(Widget):
+class Slider(Control):
     def __init__(self, canvas, bbox, label, orientation='horizontal', values=[1.0, 10.], interpolate=True, init_pos=0.5, visible=True):
         """
         :param canvas: Canvas object
@@ -26,7 +26,8 @@ class Slider(Widget):
         :param init_pos: float, initial position of the slider, reletive to endpoints.
         """
         logging.info("Creating %s slider '%s' in bbox %s." % (orientation, label, bbox))
-        super().__init__(canvas, bbox, visible=visible, pinned=True)  # slider's can't be unpinned
+        print(bbox,label)
+        super().__init__(canvas, label, bbox, visible, pinned=True)
         self._label = label
         self._orientation = orientation
         self._values = values
@@ -37,7 +38,6 @@ class Slider(Widget):
 
         # state
         self._cur_value_rel = init_pos  # stores current position of slider tab
-        self._clicked = False
 
         self._line_thickness = SLIDERS['line_thickness']
         self._label_font = SLIDERS['label_font']
@@ -178,22 +178,21 @@ class Slider(Widget):
 
     def mouse_event(self, event, x, y, flags, param):
         """
-        Handle mouse events.
-        :returns: MouseReturnStates, needs_redraw
+        Handle mouse events:
+           if we have the mouse, move the tab accordingly
+        :returns: MouseReturnStates
         """
-        if event == cv2.EVENT_LBUTTONDOWN:
-            self._clicked = True
-            self._cur_value_rel = self._click_to_rel_value((x, y))
-            return MouseReturnStates.captured, True
-
-        elif event == cv2.EVENT_MOUSEMOVE:
-            if self._clicked:
+        if self._has_mouse:
+            if event == cv2.EVENT_LBUTTONUP:
+                self._has_mouse = False
+                return MouseReturnStates.released
+            elif event == cv2.EVENT_MOUSEMOVE:
                 self._cur_value_rel = self._click_to_rel_value((x, y))
-                return MouseReturnStates.captured, True
-
-        elif event == cv2.EVENT_LBUTTONUP:
-            if self._clicked:
-                self._clicked = False
-            return MouseReturnStates.released, False
-
-        return MouseReturnStates.unused, False
+                return MouseReturnStates.captured
+        else:
+            if event == cv2.EVENT_LBUTTONDOWN and in_bbox(self._bbox, (x, y)):
+                self._has_mouse = True
+                self._cur_value_rel = self._click_to_rel_value((x, y))
+                return MouseReturnStates.captured
+        return MouseReturnStates.unused
+        
