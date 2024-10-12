@@ -26,6 +26,13 @@ class Control(UIElement):
             return True
         return in_bbox(self._bbox, xy_px)
 
+    def move_to(self, x, y, new_bbox=None):
+        if new_bbox is None:
+            self._bbox = {'x': (x, x + self._bbox['x'][1] - self._bbox['x'][0]),
+                          'y': (y, y + self._bbox['y'][1] - self._bbox['y'][0])}
+        else:
+            self._bbox = new_bbox
+
     @abstractmethod
     def mouse_event(self, event, x, y, flags, param):
         """
@@ -56,15 +63,16 @@ class Button(Control):
         if self.in_bbox((x, y)):
             self.moused_over = True
             if event == cv2.EVENT_LBUTTONDOWN:
-                self._has_mouse = True
-                return MouseReturnStates.captured
-            elif event == cv2.EVENT_LBUTTONUP:
-                self._has_mouse = False
+                return self._capture_mouse()
+            elif event == cv2.EVENT_LBUTTONUP: 
                 self.state = not self.state
-                return MouseReturnStates.released
+                return self._release_mouse()
             return MouseReturnStates.captured if self._has_mouse else MouseReturnStates.released
-        self.moused_over = False
-        return MouseReturnStates.captured if self._has_mouse else MouseReturnStates.unused
+        else:
+            self.moused_over = False
+            if self._has_mouse and event == cv2.EVENT_LBUTTONUP:
+                return self._release_mouse()
+            return MouseReturnStates.captured if self._has_mouse else MouseReturnStates.unused
 
     def render(self, img, box_color=(255, 255, 255), show_bbox=True):
         # Subclasses do something fancier, this is just a box and a label.
@@ -89,15 +97,38 @@ class ButtonBox(Control):
     A group of buttons that can be clicked.
     """
 
-    def __init__(self, canvas, bbox, button_grid, visible=True, pinned=True):
+    def __init__(self, canvas, bbox, button_grid, exclusive=True, visible=True, pinned=True):
         """
-        :param button_grid: list of lists of Button objects (or None), 
+        (ignores button's individual bboxes, aranges according to bbox & button_grid)
+        :param exclusive: if True, treated as radio buttons, else as checkboxes
+        :param button_grid: list of lists of Button objects (can be None), 
             to be displayed in that arangement, in the bbox.
         """
         super().__init__(canvas, bbox, visible, pinned)
+        self._exclusive = exclusive
         self._buttons = []
-        self._active_button = None
         self._button_grid = button_grid
+        self._init_geom()
+
+    def _init_geom(self):
+        x_min, x_max = self._bbox['x']
+        y_min, y_max = self._bbox['y']
+        n_rows = len(self._button_grid)
+        n_cols = max(len(row) for row in self._button_grid)
+        w = (x_max - x_min) // n_cols
+        h = (y_max - y_min) // n_rows
+        for i, row in enumerate(self._button_grid):
+            for j, button in enumerate(row):
+                if button is not None:
+                    button.move_to(0, 0, new_bbox={'x': (x_min + j * w, x_min + (j + 1) * w),
+                                                   'y': (y_min + i * h, y_min + (i + 1) * h)})
+                    self._buttons.append(button)
+
+    def move_to(self, x, y, new_bbox=None):
+        super().move_to(x, y, new_bbox)
+        self._init_geom()
+
+
 
     def mouse_event(self, event, x, y, flags, param):
         if self._active_button is not None:

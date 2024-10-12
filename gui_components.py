@@ -68,15 +68,37 @@ class UIElement(ABC):
     (For example, once drawing is started, buttons are ignored, and control button is pressed,
     no drawing can be done until the control button is released.)
     """
+    def __init__(self, canvas, name, bbox, visible=True, pinned=True):
+        """
+        :param canvas: a Canvas object
+        :param bbox: {'x': (x_min, x_max), 'y': (y_min, y_max)}
+        :param visible: bool, whether the control is visible initially
+        :param pinned: bool, whether the control is pinned to the window (True) or moves/resizes with the canvas (False)
+        """
+        self._name = name
+        self._bbox = bbox
+        self._canvas = canvas
+        self._visible = visible
+        self._pinned = pinned
+        self._has_mouse = False 
 
     @abstractmethod
     def mouse_event(self, event, x, y, flags, param):
         """
         Handle mouse events.
-        :returns: MouseReturnStates state as appropriate, and
-                True, if the canvas needs to be redrawn
+        :returns: MouseReturnStates state as appropriate, 
         """
         pass
+
+    def _release_mouse(self):
+        # convenience function for mouse_event implementations
+        self._has_mouse = False
+        return MouseReturnStates.released
+    
+    def _capture_mouse(self):
+        # convenience function for mouse_event implementations
+        self._has_mouse = True
+        return MouseReturnStates.captured
 
     @abstractmethod
     def render(self, img):

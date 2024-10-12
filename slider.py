@@ -184,15 +184,13 @@ class Slider(Control):
         """
         if self._has_mouse:
             if event == cv2.EVENT_LBUTTONUP:
-                self._has_mouse = False
-                return MouseReturnStates.released
+                return self._release_mouse()
             elif event == cv2.EVENT_MOUSEMOVE:
                 self._cur_value_rel = self._click_to_rel_value((x, y))
                 return MouseReturnStates.captured
         else:
             if event == cv2.EVENT_LBUTTONDOWN and in_bbox(self._bbox, (x, y)):
-                self._has_mouse = True
                 self._cur_value_rel = self._click_to_rel_value((x, y))
-                return MouseReturnStates.captured
+                return self._capture_mouse()
         return MouseReturnStates.unused
         
