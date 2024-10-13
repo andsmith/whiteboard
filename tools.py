@@ -2,7 +2,7 @@ from gui_components import UIElement
 from abc import ABC, abstractmethod
 import cv2
 import numpy as np
-from vectors import PencilStroke
+from vectors import PencilVec, LineVec, RectVec, CircleVec
 
 
 class Tool(UIElement):
@@ -43,7 +43,7 @@ class Pencil(Tool):
     def mouse_event(self, event, x, y, flags, param):
         click_pos = np.array([x, y])
         if event == cv2.EVENT_LBUTTONDOWN:
-            self._active_vec = PencilStroke(self._canvas, click_pos)
+            self._active_vec = PencilVec(self._canvas, click_pos)
         elif event == cv2.EVENT_MOUSEMOVE:
             if self._active_vec is not None:
                 self._active_vec.add_point(click_pos)
@@ -60,7 +60,7 @@ class Line(Tool):
     def mouse_event(self, event, x, y, flags, param):
         click_pos = np.array([x, y])
         if event == cv2.EVENT_LBUTTONDOWN:
-            self._active_vec = Line(self._canvas, click_pos)
+            self._active_vec = LineVec(self._canvas, click_pos)
         elif event == cv2.EVENT_MOUSEMOVE:
             if self._active_vec is not None:
                 self._active_vec.add_point(click_pos)
@@ -77,7 +77,7 @@ class Rectangle(Tool):
     def mouse_event(self, event, x, y, flags, param):
         click_pos = np.array([x, y])
         if event == cv2.EVENT_LBUTTONDOWN:
-            self._active_vec = Rectangle(self._canvas, click_pos)
+            self._active_vec = RectVec(self._canvas, click_pos)
         elif event == cv2.EVENT_MOUSEMOVE:
             if self._active_vec is not None:
                 self._active_vec.add_point(click_pos)
@@ -94,7 +94,7 @@ class Circle(Tool):
     def mouse_event(self, event, x, y, flags, param):
         click_pos = np.array([x, y])
         if event == cv2.EVENT_LBUTTONDOWN:
-            self._active_vec = Circle(self._canvas, click_pos)
+            self._active_vec = CircleVec(self._canvas, click_pos)
         elif event == cv2.EVENT_MOUSEMOVE:
             if self._active_vec is not None:
                 self._active_vec.add_point(click_pos)
@@ -119,6 +119,8 @@ class Pan(Tool):
         elif event == cv2.EVENT_LBUTTONUP:
             self._canvas.end_pan()
             self._m_down_pos = None
+
+
             
 
 class Select(Tool):

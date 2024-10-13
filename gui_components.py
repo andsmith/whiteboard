@@ -70,12 +70,12 @@ class UIElement(ABC):
     """
     def __init__(self, canvas, name, bbox, visible=True, pinned=True):
         """
-        :param canvas: a Canvas object
+        :param canvas: a Board object
         :param bbox: {'x': (x_min, x_max), 'y': (y_min, y_max)}
         :param visible: bool, whether the control is visible initially
         :param pinned: bool, whether the control is pinned to the window (True) or moves/resizes with the canvas (False)
         """
-        self._name = name
+        self.name = name
         self._bbox = bbox
         self._canvas = canvas
         self._visible = visible
@@ -111,8 +111,10 @@ class UIElement(ABC):
         Return none if this element doesn't have a bounding box (e.g. tools).
         """
         pass
+    def get_bbox(self):
+        return self._bbox
 
-class CanvasView(object):
+class BoardView(object):
     """
     Represents the view of the canvas in the window.
     """

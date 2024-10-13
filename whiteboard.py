@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 from layout import COLORS_RGB, SLIDERS, CONTROL_LAYOUT, CANVAS_LAYOUT. VECTORS
-from canvas import Canvas
+from canvas import Board
 import logging
 
 
@@ -13,7 +13,7 @@ class Whiteboard(object):
         self._canv_win_name, canv_win_size = CANVAS_LAYOUT['name'], CANVAS_LAYOUT['size']
         self._ctrl_win_name, ctrl_win_size = CONTROL_LAYOUT['name'], CONTROL_LAYOUT['size']
 
-        self._canvas = Canvas(canv_win_size, ctrl_win_size)
+        self._canvas = Board(canv_win_size, ctrl_win_size)
 
         if state_file is not None:
             self._canvas.load(state_file)
@@ -36,7 +36,7 @@ class Whiteboard(object):
             if key == 27:
                 break
             else:
-                self._canvas.k(key)
+                self._canvas.keypress(key)
         cv2.destroyAllWindows()
 
 

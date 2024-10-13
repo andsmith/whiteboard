@@ -1,12 +1,21 @@
 """
 Class to represent simple vector drawing shapes.
 """
-from gui_components import Vector
+from gui_components import BoardView
 import cv2
 import numpy as np
 from layout import COLORS_RGB, VECTORS
 from abc import ABC, abstractmethod
 from util import in_bbox
+
+
+
+class VectorManager(object):
+    """
+    Manages set of vectors on the board.
+    """
+
+
 
 
 class Vector(ABC):
@@ -26,7 +35,7 @@ class Vector(ABC):
 
     def __init__(self, canvas, init_point_px):
         """
-        :param canvas: Canvas object
+        :param canvas: Board object
         :param init_point_px: (x, y) tuple, initial point in pixels.
         """
         self._canvas = canvas
@@ -36,7 +45,7 @@ class Vector(ABC):
         self._finalized = False
 
     def add_point(self, point_px):
-
+        
 
 
     @abstractmethod
@@ -78,7 +87,7 @@ class Vector(ABC):
 class Line(Vector):
     def __init__(self, canvas, color, thickness, start, end):
         """
-        :param canvas: Canvas object
+        :param canvas: Board object
         :param color: (r, g, b) tuple
         :param thickness: int
         :param start: (x, y) tuple

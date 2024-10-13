@@ -27,9 +27,9 @@ COLORS_RGB = {'black': (0, 0, 0),
 
 UI_LINE_THICKNESS = 2
 
-# Canvas is the main display window
+# Board is the main display window
 CANVAS_LAYOUT = {'win_size': (1200, 800),
-                 'win_name': 'Whiteboard Canvas',
+                 'win_name': 'Whiteboard Board',
                  'bkg_color': COLORS_RGB['off_white'],
                  'init_zoom': 1.0,  
                  'init_origin': (0, 0),

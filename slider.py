@@ -14,7 +14,7 @@ from gui_components import MouseReturnStates
 class Slider(Control):
     def __init__(self, canvas, bbox, label, orientation='horizontal', values=[1.0, 10.], interpolate=True, init_pos=0.5, visible=True):
         """
-        :param canvas: Canvas object
+        :param canvas: Board object
         :param bbox: {'x': (x_min, x_max), 'y': (y_min, y_max)}
         :param label: str, label to display next to the slider
         :param orientation: str, 'horizontal' or 'vertical'

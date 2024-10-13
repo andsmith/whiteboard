@@ -4,7 +4,9 @@ from slider import Slider
 from layout import COLORS_RGB
 from gui_components import MouseReturnStates
 import logging
-from controls import Button
+from buttons import Button, ButtonBox
+
+
 class ControlTester(object):
 
     # fake app + canvas
@@ -19,14 +21,20 @@ class ControlTester(object):
 
         self._control_with_mouse = None
 
+    def run(self):
         cv2.namedWindow(self._win_name)
         cv2.setMouseCallback(self._win_name, self.mouse_event)
         while True:
-            frame = self.render()
-            cv2.imshow(self._win_name, frame)
-            key = cv2.waitKey(1) & 0xFF
-            if key == ord('q'):
+            if not self.render_and_show():
                 break
+
+    def render_and_show(self, delay=1):
+        frame = self.render()
+        cv2.imshow(self._win_name, frame)
+        key = cv2.waitKey(delay) & 0xFF
+        if key == ord('q'):
+            return False
+        return True
 
     def mouse_event(self, event, x, y, flags, param):
         if self._control_with_mouse is not None:
@@ -36,14 +44,13 @@ class ControlTester(object):
                 logging.info("Mouse released by control %s" % self._control_with_mouse)
         else:
             for control in self._controls:
-                rv =control.mouse_event(event, x, y, flags, param)
+                rv = control.mouse_event(event, x, y, flags, param)
                 if rv == MouseReturnStates.captured:
                     self._control_with_mouse = control
                     logging.info("Mouse captured by control %s" % control)
                 elif rv == MouseReturnStates.released:
-                    logging.info("Mouse used by control %s" % control)
+                    # logging.info("Mouse used by control %s" % control)
                     break  # used but not captured
-
 
     def render(self):
 
@@ -53,7 +60,7 @@ class ControlTester(object):
         return frame
 
 
-def test_sliders():
+def test_widgets():
     """
     One vertical and one horizontal.
     """
@@ -75,13 +82,37 @@ def test_sliders():
           'interpolate': False,
           'init_pos': 0.5}
     b1 = Button(None, 'Button', {'x': (20, 125), 'y': (100, 128)})
+    buttons = [Button(None, '%s' % (lab,), None, ) for lab in ['a', 'b', 'c', 'd', 'e']]
+
+    # reshape list into list of lists, a 3 row and 2 col grid.
+    button_grid = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]
+
+    b2 = ButtonBox(None, 'button_box', {'x': (160, 320), 'y': (190, 360)}, button_grid)
+
+    def _get_center(bbox):
+        return (bbox['x'][0] + bbox['x'][1]) // 2, (bbox['y'][0] + bbox['y'][1]) // 2
+    button_centers = {button.name: _get_center(button.get_bbox()) for button in buttons}
 
     slider1 = Slider(None, **s1)
     slider2 = Slider(None, **s2)
-    ControlTester((500, 500), [slider1,slider2,b1])
+    t = ControlTester((500, 500), [slider1, slider2, b1, b2])
+    events = [ {'label': 'mouseover button d', 'kwargs': {'event': cv2.EVENT_MOUSEMOVE, 'x': button_centers['d'][0], 'y': button_centers['d'][1], 'flags': 0, 'param': None}},
+              {'label': 'mouseover button c', 'kwargs': {'event': cv2.EVENT_MOUSEMOVE, 'x': button_centers['c'][0], 'y': button_centers['c'][1], 'flags': 0, 'param': None}},
+              {'label': 'click button d', 'kwargs': {'event': cv2.EVENT_LBUTTONDOWN, 'x': button_centers['d'][0], 'y': button_centers['d'][1], 'flags': 0, 'param': None}},
+              {'label': 'release button d', 'kwargs': {'event': cv2.EVENT_LBUTTONUP, 'x': button_centers['d'][0], 'y': button_centers['d'][1], 'flags': 0, 'param': None}},
+              {'label': 'click button c', 'kwargs': {'event': cv2.EVENT_LBUTTONDOWN, 'x': button_centers['c'][0], 'y': button_centers['c'][1], 'flags': 0, 'param': None}},
+              {'label': 'release button c', 'kwargs': {'event': cv2.EVENT_LBUTTONUP, 'x': button_centers['c'][0], 'y': button_centers['c'][1], 'flags': 0, 'param': None}},
+             ]
+    import ipdb; ipdb.set_trace()
+
+    for event in events:
+        logging.info("Sending event %s" % event['label'])
+        t.mouse_event(**event['kwargs'])
+        t.render_and_show(1000)
+    t.run()
 
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     # import ipdb;ipdb.set_trace()
-    test_sliders()
+    test_widgets()
