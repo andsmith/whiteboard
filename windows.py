@@ -1,5 +1,5 @@
 import json
-from layout import CANVAS_LAYOUT, COLORS_RGB, CONTROL_LAYOUT
+from layout import BOARD_LAYOUT, COLORS_RGB, CONTROL_LAYOUT
 import logging
 import numpy as np
 from enum import IntEnum
@@ -15,8 +15,8 @@ from slider import Slider
 class ControlWindow(Window):
     """
     The control window where all the tools and controls are.
-    It's drawing area is represented inside the control box in the canvas window.
-    It is the zoomed-in view of the canvas window for high-precision drawing.
+    It's drawing area is represented inside the control box in the board window.
+    It is the zoomed-in view of the board window for high-precision drawing.
     """
     def __init__(self, name, size, bkg_color, view):
         super().__init__(name, size, bkg_color, view)
@@ -43,7 +43,7 @@ class ControlWindow(Window):
                 if rv == MouseReturnStates.captured:
                     self._element_with_mouse = control
                     return
-        current_tool = self._canvas.get_current_tool()
+        current_tool = self._board.get_current_tool()
         rv = current_tool.mouse_event(event, x, y, self._ctrl_view)
         if rv == MouseReturnStates.captured:
             self._element_with_mouse = current_tool
@@ -51,10 +51,10 @@ class ControlWindow(Window):
 
 class BoardWindow(Window):
     """
-    The canvas window is the main window for viewing the canvas.
+    The board window is the main window for viewing the board.
     It has toolbox for a pan tool, or can use whatever tool is selected in the control window.
     """
 
     def __init__(self, name, size, bkg_color, view):
         super().__init__(name, size, bkg_color, view)
-        self._control_box = ControlBox(self._canvas, 'ControlBox', (0, 0), (0, 0), COLORS_RGB['black'])
+        self._control_box = ControlBox(self._board, 'ControlBox', (0, 0), (0, 0), COLORS_RGB['black'])

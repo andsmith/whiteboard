@@ -13,13 +13,13 @@ class Button(Control):
     A button that can be clicked.
     """
 
-    def __init__(self, canvas, name, bbox, visible=True, init_state=False, callbacks=(), pinned=True):
+    def __init__(self, board, name, bbox, visible=True, init_state=False, callbacks=(), pinned=True):
         """
         :param init_state: bool, initial state of the button
         :param callbacks: list of functions to be called when the button is clicked, 
             with args=(self, state)
         """
-        super().__init__(canvas, name, bbox, visible, pinned)
+        super().__init__(board, name, bbox, visible, pinned)
         logging.info("Created Button %s" % name)
         self.state = init_state
         self.moused_over = False
@@ -69,14 +69,14 @@ class ButtonBox(Control):
     A group of buttons that can be clicked.
     """
 
-    def __init__(self, canvas, name, bbox, button_grid, exclusive=False, visible=True, pinned=True):
+    def __init__(self, board, name, bbox, button_grid, exclusive=False, visible=True, pinned=True):
         """
         (ignores button's individual bboxes, aranges according to bbox & button_grid)
         :param exclusive: if True, treated as radio buttons, else as checkboxes
         :param button_grid: list of lists of Button objects (can be None), 
             to be displayed in that arangement, in the bbox.
         """
-        super().__init__(canvas, name, bbox, visible, pinned)
+        super().__init__(board, name, bbox, visible, pinned)
         self._exclusive = exclusive
         self._button_grid = button_grid
         self.buttons = []  # flattened list of buttons

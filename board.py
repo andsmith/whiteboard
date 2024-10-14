@@ -1,5 +1,5 @@
 import json
-from layout import CANVAS_LAYOUT, COLORS_RGB, CONTROL_LAYOUT
+from layout import BOARD_LAYOUT, COLORS_RGB, CONTROL_LAYOUT
 import logging
 import numpy as np
 from enum import IntEnum
@@ -15,7 +15,7 @@ def get_color_names():
 
 class Board(object):
     """
-    A Board represents an unbounded drawing area and The canvas stores the list of vector drawing elements.
+    A Board represents an unbounded drawing area and The board stores the list of vector drawing elements.
 
     The Board Window and Control Window each have views (bounding boxes) defined by their origin and zoom.
     The Control window has all the drawing/file toolboxes.
@@ -24,9 +24,9 @@ class Board(object):
 
     Renders both windows.
     """
-    _CANVAS_MODES = ['pan', 'zoom']
+    _board_MODES = ['pan', 'zoom']
 
-    _WINDOWS = ['canvas', 'control']
+    _WINDOWS = ['board', 'control']
 
     def __init__(self, canv_size, ctrl_size):
         """
@@ -43,16 +43,16 @@ class Board(object):
     def _init_tools(self):
         self._tools = []
 
-        # special tool for canvas window, grabing in the box moves the control window,
-        # grabing outside pans the canvas:
+        # special tool for board window, grabing in the box moves the control window,
+        # grabing outside pans the board:
         self._controls = []
 
     def _init_controls(self):
-        self._ui_elements = []  # list of UIElement objects on the canvas, UI buttons, tools, etc.
+        self._ui_elements = []  # list of UIElement objects on the board, UI buttons, tools, etc.
 
     def get_frames(self):
         """
-        Return the current frames for the canvas and control windows.
+        Return the current frames for the board and control windows.
         """
         canv_frame = self._get_canv_frame()
         ctrl_frame = self._get_ctrl_frame()

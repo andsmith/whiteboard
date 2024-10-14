@@ -9,7 +9,7 @@ from buttons import Button, ButtonBox
 
 class ControlTester(object):
 
-    # fake app + canvas
+    # fake app + board
     def __init__(self, win_size, controls):
         self._win_size = win_size
         self._bkg_color = COLORS_RGB['black']

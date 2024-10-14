@@ -28,7 +28,7 @@ COLORS_RGB = {'black': (0, 0, 0),
 UI_LINE_THICKNESS = 2
 
 # Board is the main display window
-CANVAS_LAYOUT = {'win_size': (1200, 800),
+BOARD_LAYOUT = {'win_size': (1200, 800),
                  'win_name': 'Whiteboard Board',
                  'bkg_color': COLORS_RGB['off_white'],
                  'init_zoom': 1.0,  
@@ -41,8 +41,8 @@ CANVAS_LAYOUT = {'win_size': (1200, 800),
 CONTROL_LAYOUT = {
     'win_name': 'Whiteboard Controls',
     'win_size': (800, 600),
-    'init_zoom': 2.0,  # wrt canvas window
-    'init_origin': (0, 0), # wrt canvas window
+    'init_zoom': 2.0,  # wrt board window
+    'init_origin': (0, 0), # wrt board window
 
 
     # toolbox, strip in the middle of the right side of the window

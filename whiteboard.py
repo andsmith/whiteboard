@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
-from layout import COLORS_RGB, SLIDERS, CONTROL_LAYOUT, CANVAS_LAYOUT. VECTORS
-from canvas import Board
+from layout import COLORS_RGB, SLIDERS, CONTROL_LAYOUT, BOARD_LAYOUT, VECTORS
+from board import Board
 import logging
 from windows import BoardWindow, ControlWindow
 from controls import ControlManager

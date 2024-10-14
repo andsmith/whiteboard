@@ -12,14 +12,14 @@ class Control(UIElement):
     Abstract class for a thing you can interact with on the window that isn't the board.
     """
 
-    def __init__(self, canvas, name, bbox, visible=True, pinned=True):
+    def __init__(self, board, name, bbox, visible=True, pinned=True):
         """
-        :param canvas: a Board object
+        :param board: a Board object
         :param bbox: {'x': (x_min, x_max), 'y': (y_min, y_max)}
         :param visible: bool, whether the control is visible initially
-        :param pinned: bool, whether the control is pinned to the window (True) or moves/resizes with the canvas (False)
+        :param pinned: bool, whether the control is pinned to the window (True) or moves/resizes with the board (False)
         """
-        super().__init__(canvas, name, bbox, visible, pinned)
+        super().__init__(board, name, bbox, visible, pinned)
 
     def in_bbox(self, xy_px):
         if self._bbox is None:
