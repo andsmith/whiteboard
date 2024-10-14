@@ -67,7 +67,7 @@ def test_widgets():
     width = 40
     length = 300
 
-    s1 = {'bbox': {'x': (100, 100 + width), 'y': (150, 150 + length)},
+    s1 = {'bbox': {'x': (10, 110 + width), 'y': (150, 150 + length)},
           'label': 'Vertical',
           'orientation': 'vertical',
           'values': [1, 100],
@@ -82,12 +82,14 @@ def test_widgets():
           'interpolate': False,
           'init_pos': 0.5}
     b1 = Button(None, 'Button', {'x': (20, 125), 'y': (100, 128)})
+
     buttons = [Button(None, '%s' % (lab,), None, ) for lab in ['a', 'b', 'c', 'd', 'e']]
+    button_grid = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]  # 3 row and 2 col grid.
+    b2 = ButtonBox(None, 'exclusive_button_box', {'x': (160, 290), 'y': (190, 280)}, button_grid, exclusive=True)
 
-    # reshape list into list of lists, a 3 row and 2 col grid.
-    button_grid = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]
-
-    b2 = ButtonBox(None, 'button_box', {'x': (160, 320), 'y': (190, 360)}, button_grid)
+    buttons = [Button(None, '%s' % (lab,), None, ) for lab in ['1', '2', '3', '4', '5','6']]
+    button_grid = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]  # 3 row and 2 col grid.
+    b3 = ButtonBox(None, 'button_box', {'x': (300, 430), 'y': (190, 280)}, button_grid, exclusive=False)
 
     def _get_center(bbox):
         return (bbox['x'][0] + bbox['x'][1]) // 2, (bbox['y'][0] + bbox['y'][1]) // 2
@@ -95,7 +97,11 @@ def test_widgets():
 
     slider1 = Slider(None, **s1)
     slider2 = Slider(None, **s2)
-    t = ControlTester((500, 500), [slider1, slider2, b1, b2])
+    t = ControlTester((500, 500), [slider1, slider2, b1, b2, b3])
+
+    t.run()
+
+    return
     events = [ {'label': 'mouseover button d', 'kwargs': {'event': cv2.EVENT_MOUSEMOVE, 'x': button_centers['d'][0], 'y': button_centers['d'][1], 'flags': 0, 'param': None}},
               {'label': 'mouseover button c', 'kwargs': {'event': cv2.EVENT_MOUSEMOVE, 'x': button_centers['c'][0], 'y': button_centers['c'][1], 'flags': 0, 'param': None}},
               {'label': 'click button d', 'kwargs': {'event': cv2.EVENT_LBUTTONDOWN, 'x': button_centers['d'][0], 'y': button_centers['d'][1], 'flags': 0, 'param': None}},
@@ -112,7 +118,7 @@ def test_widgets():
     t.run()
 
 
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
-    # import ipdb;ipdb.set_trace()
     test_widgets()
