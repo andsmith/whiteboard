@@ -64,7 +64,7 @@ CONTROL_LAYOUT = {
                          'orientation': 'vertical'}, },
 }
 
-VECTORS = {'ctrl_pts': {'color': 'neon green',
+VECTOR_DEF = {'ctrl_pts': {'color': 'neon green',
                         'radius': 10,
                         'max_click_dist': 10  # max distance from ctrl pt to select it
                         }}

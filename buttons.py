@@ -8,9 +8,15 @@ from gui_components import UIElement, MouseReturnStates
 from controls import Control
 import logging
 
+
 class Button(Control):
     """
-    A button that can be clicked.
+    Base class for all kinds of buttons.
+    """
+
+class StateButton(Control):
+    """
+    A button that can be clicked on/off.
     """
 
     def __init__(self, board, name, bbox, visible=True, init_state=False, callbacks=(), pinned=True, only_on=False):

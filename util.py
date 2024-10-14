@@ -72,15 +72,8 @@ def in_bbox(bbox, xy_px):
 
 
 def bboxes_intersect(bbox1, bbox2):
-    """
-    Return True if any corner of bbox1 is inside bbox2, or vice versa.
-    """
-    corners1 = np.array([[bbox1['x'][0], bbox1['y'][0]],
-                         [bbox1['x'][0], bbox1['y'][1]],
-                         [bbox1['x'][1], bbox1['y'][0]],
-                         [bbox1['x'][1], bbox1['y'][1]]])
-    corners2 = np.array([[bbox2['x'][0], bbox2['y'][0]],
-                         [bbox2['x'][0], bbox2['y'][1]],
-                         [bbox2['x'][1], bbox2['y'][0]],
-                         [bbox2['x'][1], bbox2['y'][1]]])
-    return any([in_bbox(bbox2, corner) for corner in corners1]) or any([in_bbox(bbox1, corner) for corner in corners2])
+    def intervals_overlap(int1, int2):
+        return int1[0] <= int2[1] and int2[0] <= int1[1]
+    x_overlaps = intervals_overlap(bbox1['x'], bbox2['x'])
+    y_overlaps = intervals_overlap(bbox1['y'], bbox2['y'])
+    return x_overlaps and y_overlaps
