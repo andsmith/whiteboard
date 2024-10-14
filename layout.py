@@ -83,3 +83,4 @@ SLIDERS = {'indent': .05,  # fraction of bounding box length (right margin deter
            'tab_text_color': 'light_gray',
            'tab_text_size': 1.0,  # fraction of tab height
            }
+EMPTY_BBOX = {'x': [0,1], 'y': [0,1]}

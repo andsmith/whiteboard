@@ -1,115 +1,138 @@
 """
 Class to represent simple vector drawing shapes.
 """
-from gui_components import BoardView
+from gui_components import UIElement, UIManager, BoardView
 import cv2
 import numpy as np
-from layout import COLORS_RGB, VECTORS
-from abc import ABC, abstractmethod
-from util import in_bbox
+from layout import COLORS_RGB, VECTORS, EMPTY_BBOX
+from abc import ABC, abstractmethod, abstractstaticmethod
+from util import get_bbox, bboxes_intersect
+import json
+import time
 
 
-
-class VectorManager(object):
+class Vector(UIElement, ABC):
     """
-    Manages set of vectors on the board.
-    """
-
-
-
-
-class Vector(ABC):
-    """
-    Represents some change to the canvas, e.g., line, circle, pencil stroke.
-    Store all coordinates & properties.
+    Base class for vectors, all defined by a user input consisting of a sequence of points.
+    Vectors represent some change to the board, e.g., line, circle, pencil stroke.
 
     When objects are first created, or when selected, they are 'unfinalized' (i.e. in progress).
-    Unfinalized objects may be drawn differently.
+    Unfinalized/highlighted objects may be drawn differently.
     Objects are finalized when the user releases the mouse button (etc.).
 
-    The canvas is rendered by applying the list of vectors to a blank image.
-
-
-    Undoing is removing the last vector, pushing it to the redo stack, etc.
     """
 
-    def __init__(self, canvas, init_point_px):
+    def __init__(self, color, thickness):
         """
-        :param canvas: Board object
-        :param init_point_px: (x, y) tuple, initial point in pixels.
+        :param board: Board object
+        :param color: (r, g, b) tuple
+        :param thickness: int
         """
-        self._canvas = canvas
-        self._color = canvas.current_color
-        self._points = []  # list of (x, y) tuples in canvas coordinates
-        self.add_point(init_point_px)
-        self._finalized = False
+        self._highlight_level = 0  # 0 = no highlight, 1 = selected  (TODO: 2 = hovered, 3 = ?, ...)
+        self._finalized_t = None  # time when the vector was finalized, in epoch.
+        self._color = color
+        self._thickness = thickness
+        self._points = []
 
-    def add_point(self, point_px):
-        
-
+        super().__init__('Vector', EMPTY_BBOX, visible=True, pinned=True)
 
     @abstractmethod
-    def serialize(self):
+    def get_data(self):
+        """
+        Return the data needed to serialize this vector (must be JSON-able).
+        """
         pass
 
     @abstractmethod
-    def deserialize(self):
+    @staticmethod
+    def from_data(string):
+        """
+        Return a new vector object from the data (as returned by get_data).
+        """
         pass
 
     @abstractmethod
-    def render(self, img, origin, zoom, selected=False):
+    def render(self, img, view):
         """
         Draw the vector on the image, or whatever part is in bounds.
         :param img: np.array, image to draw on.
-        :param origin: np.array, (x, y) of the top-left corner of the canvas.
-        :param zoom: float, zoom factor. (higher means bigger)
-        """
-        pass
-
-    @abstractmethod
-    def point_dist(self, pt):
-        """
-        Return the distance to the vector object.
-        """
-        pass
-
-    @abstractmethod
-    def inside(bbox):
-        """
-        Returns True if any part of the vector will be visible in the bbox.
+        :param view:  a BoardView object, the portion of the board that is visible in this image.
         """
         pass
 
     def finalize(self):
-        self._finalized = True
+        self._finalized_t = time.time()
 
+    def add_point(self, xy_board):
+        self._points.append(xy_board)
+        self._bbox = get_bbox(self._points)
 
-class Line(Vector):
-    def __init__(self, canvas, color, thickness, start, end):
-        """
-        :param canvas: Board object
-        :param color: (r, g, b) tuple
-        :param thickness: int
-        :param start: (x, y) tuple
-        :param end: (x, y) tuple
-        """
-        super().__init__(canvas)
-        self._color = color
-        self._thickness = thickness
-        self._start = np.array(start)
-        self._end = np.array(end)
-        self._finalized = True
+    def get_data(self):
+        if self._finalized_t is None:
+            raise ValueError("Vector not finalized, don't serialize!")
 
-    def render(self, img):
-        cv2.line(img, tuple(self._start), tuple(self._end), self._color, self._thickness)
-
-    def inside(bbox):
-        return 
-
-
-    def serialize(self):
-        return {'type': 'Line', 'color': self._color, 'thickness': self._thickness, 'start': self._start.tolist(), 'end': self._end.tolist()}
+        data = {'color': self._color,
+                'thickness': self._thickness,
+                'points': self._points,
+                'timestamp': self._finalized_t}
+        return data
 
     @classmethod
-    def deserialize(cls, canvas, data):
-        return cls(canvas, data['color'], data['thickness'], data['start'], data['end'])
+    def from_data(cls, data):
+        r = cls(data['color'], data['thickness'])
+        r._points = data['points']
+        r._bbox = get_bbox(r._points)
+        r._finalized_t = data['timestamp']
+        return r
+
+
+class PencilVec(Vector):
+    """
+    Pencil stroke connects the sequence of points a line that has the given properties.
+    """
+
+    def render(self, img, view):
+        if view.sees_bbox(self._bbox):
+            thickness = int(self._thickness * view.zoom)
+            thickness += self._highlight_level * 2  # add 2 pixels per highlight (regardless of zoom)
+            coords = view.to_pixels(self._points)
+            if len(self._points) > 1:
+                cv2.polylines(img, [np.array(coords)], False, self._color, self._thickness, lineType=cv2.LINE_AA)
+
+
+class LineVec(PencilVec):
+    """
+    Line vector connects the first and last points.
+    """
+
+    def add_point(self, xy_board):
+        super().add_point(xy_board)
+        if len(self._points) > 2:
+            self._points = [self._points[0], self._points[-1]]
+
+
+class CircleVec(LineVec):
+    """
+    Circle vector is defined by the center and a point on the circumference.
+    """
+
+    def render(self, img, view):
+        if view.sees_bbox(self._bbox):
+            thickness = int(self._thickness * view.zoom)
+            thickness += self._highlight_level * 2  # add 2 pixels per highlight (regardless of zoom)
+            coords = self._points_to_px(view)
+            center, radius = coords[0], np.linalg.norm(coords[1] - coords[0])
+            cv2.circle(img, tuple(center), int(radius), self._color, thickness, lineType=cv2.LINE_AA)
+
+
+class RectangleVec(LineVec):
+    """
+    Rectangle vector is defined by two opposite corners.
+    """
+
+    def render(self, img, view):
+        if view.sees_bbox(self._bbox):
+            thickness = int(self._thickness * view.zoom)
+            thickness += self._highlight_level * 2  # add 2 pixels per highlight (regardless of zoom)
+            coords = self._points_to_px(view)
+            cv2.rectangle(img, tuple(coords[0]), tuple(coords[1]), self._color, thickness, lineType=cv2.LINE_AA)

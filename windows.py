@@ -3,35 +3,13 @@ from layout import CANVAS_LAYOUT, COLORS_RGB, CONTROL_LAYOUT
 import logging
 import numpy as np
 from enum import IntEnum
-from gui_components import UIWindow, BoardView, MouseReturnStates
+from gui_components import UIWindow, BoardView, MouseReturnStates, Window
 from tools import Tool
 import cv2
 from util import in_bbox
 from abc import ABC, abstractmethod
 from controls import ControlBox, Toolbox, ColorBox
 from slider import Slider
-
-class Window(ABC):
-    def __init__(self, canvas, name, size, bkg_color, view):
-        self._canvas = canvas
-        self._name = name
-        self._size = size
-        self._bkg_color = bkg_color
-        self._view = view
-        self._controls = []
-        self._control_with_mouse = None  # UIElement object with mouse focus      
-        self._init_controls()
-
-
-    @abstractmethod
-    def _init_controls(self):
-        # Add everything to self._controls
-        pass
-
-    def render(self, frame):
-        for control in self._controls:
-            control.render(frame)
-        return frame
 
 
 class ControlWindow(Window):

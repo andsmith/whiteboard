@@ -3,40 +3,41 @@ import numpy as np
 from layout import COLORS_RGB, SLIDERS, CONTROL_LAYOUT, CANVAS_LAYOUT. VECTORS
 from canvas import Board
 import logging
-
+from windows import BoardWindow, ControlWindow
+from controls import ControlManager
+from vectors import VectorManager
+from tools import ToolManager
 
 class Whiteboard(object):
     def __init__(self, state_file=None):
-
         logging.info("Starting Whiteboard...")
+        
+        self._board = Board()
 
-        self._canv_win_name, canv_win_size = CANVAS_LAYOUT['name'], CANVAS_LAYOUT['size']
-        self._ctrl_win_name, ctrl_win_size = CONTROL_LAYOUT['name'], CONTROL_LAYOUT['size']
+        # Three kinds of UI elements, can talk to each other via the shared board object:
+        self._board.vectors = VectorManager(self._board, state_file)
+        self._board.controls = ControlManager(self._board)
+        self._board.tools = ToolManager(self._board)
+        
+        # Two windows, each with a view of the board, each 
+        # tell the managers how to render their elements:
+        self._board_window = BoardWindow(self._board)
+        self._ctrl_window = ControlWindow(self._board)
 
-        self._canvas = Board(canv_win_size, ctrl_win_size)
-
-        if state_file is not None:
-            self._canvas.load(state_file)
-
-        cv2.namedWindow(self._canv_win_name, cv2.WINDOW_NORMAL)
-        cv2.resizeWindow(self._canv_win_name, canv_win_size[0], canv_win_size[1])
-        cv2.setMouseCallback(self._canv_win_name, self._canvas.canv_mouse_callback)
-
-        cv2.namedWindow(self._ctrl_win_name, cv2.WINDOW_NORMAL)
-        cv2.resizeWindow(self._ctrl_win_name, ctrl_win_size[0], ctrl_win_size[1])
-        cv2.setMouseCallback(self._ctrl_win_name, self._canvas.ctrl_mouse_callback)
 
     def run(self):
+
         while True:
-            canv_frame, ctrl_frame = self._canvas.get_frames()
-            cv2.imshow(self._canv_win_name, canv_frame)
-            cv2.imshow(self._ctrl_win_name, ctrl_frame)
+            self._board_window.refresh()
+            self._ctrl_window.refresh()
 
             key = cv2.waitKey(10) & 0xFF
+
             if key == 27:
                 break
             else:
-                self._canvas.keypress(key)
+                self._board.keypress(key)
+
         cv2.destroyAllWindows()
 
 
