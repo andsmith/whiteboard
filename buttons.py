@@ -48,7 +48,7 @@ class Button(Control):
     def render(self, img, box_color=(255, 255, 255), show_bbox=True):
         # Subclasses do something fancier, this is just a box and a label.
         print("%s is moused over: %s" % (self.name, self.moused_over))
-        if self._visible:
+        if self.visible:
             p1 = (self._bbox['x'][0], self._bbox['y'][0])
             p2 = (self._bbox['x'][1], self._bbox['y'][1])
             if show_bbox:
