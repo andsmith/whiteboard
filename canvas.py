@@ -9,6 +9,9 @@ import cv2
 from util import in_bbox
 from abc import ABC, abstractmethod
 
+def get_color_names():
+    return [c for row in CONTROL_LAYOUT['control_box']['colors'] for c in row]
+
 
 class Board(object):
     """
@@ -29,6 +32,7 @@ class Board(object):
         """
         :param vectors: list of Vector objects.
         """
+        self.colors = get_color_names()
         self.vectors = None # VectorManager()
         self.controls = None # ControlManager()
         self.tools = None # ToolManager()

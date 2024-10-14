@@ -4,12 +4,12 @@ import cv2
 import json
 from abc import ABC, abstractmethod
 from util import in_bbox
-from gui_components import UIElement, MouseReturnStates
+from gui_components import UIElement, MouseReturnStates, UIManager
 
 
 class Control(UIElement):
     """
-    Abstract class for all UI components (things you can interact with on the window)
+    Abstract class for a thing you can interact with on the window that isn't the board.
     """
 
     def __init__(self, canvas, name, bbox, visible=True, pinned=True):
@@ -44,3 +44,25 @@ class Control(UIElement):
     def render(self, img, show_bbox=True):
         pass
 
+class ControlManager(UIManager):
+    """
+    Manages set of controls on the board.
+    """
+
+    def __init__(self, board):
+        super().__init__(board, 'Control Manager', None, visible=False, pinned=True)
+        self._controls = []
+
+    def _init_elements(self):
+        # Toolbox (in control window)
+        # colorbox (in control window)
+        # zoom window (in board window)
+        # zoom slider bar (in control window)
+        # zoom slider bar (in board window)
+        pass
+    
+    def render(self, img):
+        for control in self._controls:
+            control.render(img)
+
+    def get_controls_in(self, bbox):

@@ -19,7 +19,7 @@ class MouseReturnStates(IntEnum):
 
 class BoardView(object):
     """
-    Represents the view of some part of the board.
+    Represents the view of some part of the board (the cartesian plane).
     """
 
     def __init__(self, size, origin, zoom):

@@ -5,7 +5,7 @@ from canvas import Board
 import logging
 from windows import BoardWindow, ControlWindow
 from controls import ControlManager
-from vectors import VectorManager
+from vector_manager import VectorManager
 from tools import ToolManager
 
 class Whiteboard(object):
