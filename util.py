@@ -96,3 +96,28 @@ def floats_to_fixed(points):
     (call before plotting with cv2 using argument shift=PREC_BITS)
     """
     return np.round(points * PREC_SCALE).astype(np.int32)
+
+
+def scale_points_to_bbox(unit_points, bbox, margin_frac=0.3):
+    """
+    Fit the points in the bounding box, padded by a margin.
+
+
+    :param unit_points: Nx2 array of points in the unit square
+    :param bbox: {x:(x_min, x_max), y:(y_min, y_max)} bounding box (pixels) points will ultimately be drawn in.
+    :param margin_frac: fraction of the unit square to leave as a margin (points are shrunk by 1-margin_frac)
+    :returns: Nx2 array of points in the bounding box ready to plot (int32).
+    """
+    x_min, x_max = bbox['x']
+    y_min, y_max = bbox['y']
+    x_pad = (x_max - x_min) * margin_frac / 2
+    y_pad = (y_max - y_min) * margin_frac / 2
+    x_min += x_pad
+    x_max -= x_pad
+    y_min += y_pad
+    y_max -= y_pad
+    x_scale = x_max - x_min
+    y_scale = y_max - y_min
+    return np.array([(x_min + x * x_scale,
+                                      y_min + y * y_scale)
+                                     for x, y in unit_points])
