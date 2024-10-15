@@ -1,8 +1,6 @@
 # Fixed params for app, dimensions are pixels or relative to w/h of window.
 import cv2
 
-PREC_BITS = 7  # number of bits to use for precision in fixed-point numbers
-PREC_SCALE = 2 ** PREC_BITS  # for cv2 draw commands
 
 COLORS_RGB = {'black': (0, 0, 0),
               'white': (255, 255, 255),
@@ -16,6 +14,7 @@ COLORS_RGB = {'black': (0, 0, 0),
               'magenta': (255, 0, 255),
               'gray': (128, 128, 128),
               'dark_gray': (64, 64, 64),
+              'dark_dark_gray': (32, 32, 32),
               'light_gray': (192, 192, 192),
               'orange': (255, 165, 0),
               'purple': (128, 0, 128),
@@ -24,13 +23,17 @@ COLORS_RGB = {'black': (0, 0, 0),
               'olive': (128, 128, 0),
               'teal': (0, 128, 128),
               'navy': (0, 0, 128)}
+COLORS_BGR = {k: tuple(reversed(v)) for k, v in COLORS_RGB.items()}
+
+
 
 UI_LINE_THICKNESS = 2
 
 # Board is the main display window
 BOARD_LAYOUT = {'win_size': (1200, 800),
                  'win_name': 'Whiteboard Board',
-                 'bkg_color': COLORS_RGB['off_white'],
+                 'bkg_color': 'off_white',
+                 'obj_color': 'dark_dark_gray',
                  'init_zoom': 1.0,  
                  'init_origin': (0, 0),
                  'zoom_bar': {'loc': {'x': [.85, .95],
@@ -53,7 +56,7 @@ CONTROL_LAYOUT = {
     # color box, strip below toolbox, 10% width, 5% separation
     'color_box': {'loc': {'x': [.05, .3],
                            'y': [.15, .6]},
-                   'options': [['black', 'white'],
+                   'options': [['black', 'gray'],
                                ['red', 'orange'],
                                ['blue', 'yellow'],
                                ['purple', 'green']]},
@@ -76,11 +79,17 @@ SLIDERS = {'indent': .05,  # fraction of bounding box length (right margin deter
            'tab_height': 0.5,  # fraction of bounding box width
            'min_tab_width_px': 10,
            'min_tab_height_px': 20,
-           'line_color': 'black',
-           'label_color': 'white',
+           'line_color': BOARD_LAYOUT['obj_color'],
+           'label_color': BOARD_LAYOUT['obj_color'],
            'label_font': cv2.FONT_HERSHEY_SIMPLEX,
-           'tab_color': 'dark_gray',
-           'tab_text_color': 'light_gray',
+           'tab_color':'gray',
+           'tab_text_color': BOARD_LAYOUT['obj_color'],
            'tab_text_size': 1.0,  # fraction of tab height
            }
 EMPTY_BBOX = {'x': [0,1], 'y': [0,1]}
+
+COLOR_BUTTONS = {'margin_frac': 0.2,  # Circle fits in bbox with this margin
+                 'outline_frac': 0.2,  # Fraction of bbox width for outline
+                 'mouseover_color': 'neon green',
+                 'selected_color': BOARD_LAYOUT['obj_color'],
+                 'unselected_color': 'red'}

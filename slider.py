@@ -26,7 +26,6 @@ class Slider(Control):
         :param init_pos: float, initial position of the slider, reletive to endpoints.
         """
         logging.info("Creating %s slider '%s' in bbox %s." % (orientation, label, bbox))
-        print(bbox,label)
         super().__init__(board, label, bbox, visible, pinned=True)
         self._label = label
         self._orientation = orientation
@@ -44,12 +43,15 @@ class Slider(Control):
         self._line_color = COLORS_RGB[SLIDERS['line_color']]
         self._tab_color = COLORS_RGB[SLIDERS['tab_color']]
         self._label_color = COLORS_RGB[SLIDERS['label_color']]
+        self._set_geom()
+
+    def _set_geom(self):
 
         # define absolute geometry (WRT window pixels) from relative in layout.py:
         x_min, x_max = self._bbox['x']
         y_min, y_max = self._bbox['y']
         w, h = x_max - x_min, y_max - y_min
-        
+
         self._font_scale, self._font_thickness = get_font_size(self._bbox, self._orientation)
         label_width, label_height = self._get_max_label_dims()
 
@@ -77,7 +79,7 @@ class Slider(Control):
             # line dimensions
             x_center = (x_min + x_max) // 2
             length = h - label_height - 3 * self._margin_px
-            y = y_min + label_height + 2* self._margin_px
+            y = y_min + label_height + 2 * self._margin_px
             self._line_endpoints = np.array([[x_center, y], [x_center, y + length]])
             self._label_spacing = self._margin_px
         self._line_endpoints = np.array(self._line_endpoints, dtype=np.int32)
@@ -110,12 +112,12 @@ class Slider(Control):
             * "label:  value" is displayed to the left of the line, or above the box, depending on self.orientation
         """
         # draw line first
-        cv2.line(img, tuple(self._line_endpoints[0, :]), tuple(self._line_endpoints[1, :]), COLORS_RGB['white'], 2)
+        cv2.line(img, tuple(self._line_endpoints[0, :]), tuple(self._line_endpoints[1, :]), self._line_color, self._line_thickness)
         # draw tab
         tab_pos = self.get_tab_pos()
         tab_p1 = (int(tab_pos['x'][0]), int(tab_pos['y'][0]))
         tab_p2 = (int(tab_pos['x'][1]), int(tab_pos['y'][1]))
-        cv2.rectangle(img, tab_p1, tab_p2, self._tab_color, 5)
+        cv2.rectangle(img, tab_p1, tab_p2, self._tab_color, -1)
         # draw label
         label = self.get_value()[1]
         (width, height), _ = cv2.getTextSize(label, self._label_font, self._font_scale, self._font_thickness)
@@ -125,7 +127,7 @@ class Slider(Control):
             y = int(self._line_endpoints[0, 1] + height // 2)
         else:
             x = int(self._line_endpoints[0, 0] - width // 2)
-            y = int(self._line_endpoints[0, 1] - self._label_spacing )
+            y = int(self._line_endpoints[0, 1] - self._label_spacing)
         cv2.putText(img, label, (x, y), self._label_font, self._font_scale, self._label_color, self._font_thickness,
                     lineType=cv2.LINE_AA)
 
@@ -193,4 +195,3 @@ class Slider(Control):
                 self._cur_value_rel = self._click_to_rel_value((x, y))
                 return self._capture_mouse()
         return MouseReturnStates.unused
-        

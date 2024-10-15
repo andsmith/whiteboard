@@ -161,6 +161,9 @@ class ToolManager(UIManager):
         
         self._tool_list = list(self._tools.values())
 
+    def set_color(self, color_name):
+        self._color = color_name
+
     def render(self, img):
         pass
 

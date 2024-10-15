@@ -77,3 +77,22 @@ def bboxes_intersect(bbox1, bbox2):
     x_overlaps = intervals_overlap(bbox1['x'], bbox2['x'])
     y_overlaps = intervals_overlap(bbox1['y'], bbox2['y'])
     return x_overlaps and y_overlaps
+
+
+def get_circle_points(center, radius, num_points=100):
+    """
+    Return a numpy array of points in a circle.
+    """
+    theta = np.linspace(0, 2 * np.pi, num_points)
+    x = center[0] + radius * np.cos(theta)
+    y = center[1] + radius * np.sin(theta)
+    return np.array([x, y]).T
+
+PREC_BITS = 7  # number of bits to use for precision in fixed-point numbers
+PREC_SCALE = 2 ** PREC_BITS  # for cv2 draw commands
+def floats_to_fixed(points):
+    """
+    Convert an array of floats to fixed-point numbers.
+    (call before plotting with cv2 using argument shift=PREC_BITS)
+    """
+    return np.round(points * PREC_SCALE).astype(np.int32)

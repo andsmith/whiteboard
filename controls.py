@@ -22,6 +22,11 @@ class Control(UIElement):
         super().__init__( name, bbox, visible, pinned)
         self._board = board
 
+    @abstractmethod
+    def _set_geom(self):
+        # called after move_to (may be useful in sublcasses' __init__ as well)
+        pass
+
     def in_bbox(self, xy_px):
         if self._bbox is None:
             return True
@@ -33,6 +38,7 @@ class Control(UIElement):
                           'y': (y, y + self._bbox['y'][1] - self._bbox['y'][0])}
         else:
             self._bbox = new_bbox
+        self._set_geom()
 
     @abstractmethod
     def mouse_event(self, event, x, y, flags, param):

@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from vectors import LineVec, CircleVec, PencilVec, RectangleVec
 from layout import COLORS_RGB
-from gui_components import BoardView, get_board_view
+from board_view import BoardView, get_board_view
 from tempfile import mkdtemp
 from vector_manager import VectorManager
 

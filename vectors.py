@@ -3,6 +3,7 @@ Class to represent simple vector drawing shapes.
 """
 from gui_components import UIElement, GUIArtist
 import cv2
+
 import numpy as np
 from layout import COLORS_RGB, VECTOR_DEF, EMPTY_BBOX
 from abc import ABC, abstractmethod
