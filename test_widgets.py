@@ -62,11 +62,12 @@ class ControlTester(object):
 
 def test_widgets():
     """
-    One vertical and one horizontal.
+    Widget sandbox.
     """
     width = 40
     length = 300
 
+    # sliders
     s1 = {'bbox': {'x': (10, 110 + width), 'y': (150, 150 + length)},
           'label': 'Vertical',
           'orientation': 'vertical',
@@ -81,27 +82,32 @@ def test_widgets():
           'values': ['a', 'b', 'c', 'd', 'e'],
           'interpolate': False,
           'init_pos': 0.5}
-    b1 = Button(None, 'Button', {'x': (20, 125), 'y': (100, 128)})
-
-    buttons = [Button(None, '%s' % (lab,), None, ) for lab in ['a', 'b', 'c', 'd', 'e']]
-    button_grid = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]  # 3 row and 2 col grid.
-    b2 = ButtonBox(None, 'exclusive_button_box', {'x': (160, 290), 'y': (190, 280)}, button_grid, exclusive=True)
-
-    buttons = [Button(None, '%s' % (lab,), None, ) for lab in ['1', '2', '3', '4', '5','6']]
-    button_grid = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]  # 3 row and 2 col grid.
-    b3 = ButtonBox(None, 'button_box', {'x': (300, 430), 'y': (190, 280)}, button_grid, exclusive=False)
-
-    def _get_center(bbox):
-        return (bbox['x'][0] + bbox['x'][1]) // 2, (bbox['y'][0] + bbox['y'][1]) // 2
-    button_centers = {button.name: _get_center(button.get_bbox()) for button in buttons}
-
     slider1 = Slider(None, **s1)
     slider2 = Slider(None, **s2)
-    t = ControlTester((500, 500), [slider1, slider2, b1, b2, b3])
+
+    # single button, true-false
+    b1 = Button(None, 'Button', {'x': (20, 125), 'y': (100, 128)})
+
+    # button box, radio-button style
+    #buttons = [Button(None, '%s' % (lab,), None, ) for lab in ['a', 'b', 'c', 'd', 'e']]
+    #button_grid = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]  # 3 row and 2 col grid.
+    #bbx1 = ButtonBox(None, 'exclusive_button_box', {'x': (160, 290), 'y': (190, 280)}, button_grid, exclusive=True)
+
+    # button box, (collection of unconstrained buttons)
+    buttons = [Button(None, '%s' % (lab,), None, ) for lab in ['1', '2', '3', '4', '5','6']]
+    button_grid = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]  # 3 row and 2 col grid.
+    import ipdb; ipdb.set_trace()
+    bbx2 = ButtonBox(None, 'button_box', {'x': (300, 430), 'y': (190, 280)}, button_grid, exclusive=False)
+
+    t = ControlTester((500, 500), [slider1, slider2, b1, bbx2])
 
     t.run()
 
     return
+    def _get_center(bbox):
+        return (bbox['x'][0] + bbox['x'][1]) // 2, (bbox['y'][0] + bbox['y'][1]) // 2
+    button_centers = {button.name: _get_center(button.get_bbox()) for button in buttons}
+
     events = [ {'label': 'mouseover button d', 'kwargs': {'event': cv2.EVENT_MOUSEMOVE, 'x': button_centers['d'][0], 'y': button_centers['d'][1], 'flags': 0, 'param': None}},
               {'label': 'mouseover button c', 'kwargs': {'event': cv2.EVENT_MOUSEMOVE, 'x': button_centers['c'][0], 'y': button_centers['c'][1], 'flags': 0, 'param': None}},
               {'label': 'click button d', 'kwargs': {'event': cv2.EVENT_LBUTTONDOWN, 'x': button_centers['d'][0], 'y': button_centers['d'][1], 'flags': 0, 'param': None}},

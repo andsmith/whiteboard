@@ -11,45 +11,56 @@ import logging
 
 class Button(Control):
     """
-    Base class for all kinds of buttons.
+    A button that can be moused over & clicked.  Clicks can trigger callbacks and/or change state.
     """
 
-class StateButton(Control):
-    """
-    A button that can be clicked on/off.
-    """
+    def __init__(self, board, name, bbox, states=(False, True), callbacks=(), triggers=(True,), action_mouseup=True, pinned=False):
+        """
+        #TODO: Fix callback semantics for radio buttons (on state change, not on activate only?)
+        :param states: list of states to cycle through (add a callback if this needs changing)
+        :param callbacks: list of functions to call when the button is clicked, after the new
+            state is set. i.e.:
 
-    def __init__(self, board, name, bbox, visible=True, init_state=False, callbacks=(), pinned=True, only_on=False):
+                def click():
+                    ...
+                    self.state = new_state
+                    callback(self, new_state, old_state)
+        :param triggers: Which (new) states trigger the callbacks, or None for all state changes.
+        :param action_mouseup: if True, the button changes state on mouseup, else on mousedown.
+        :param pinned: if True, the button moves with the board, else it is fixed WRT the window.
         """
-        :param init_state: bool, initial state of the button
-        :param callbacks: list of functions to be called when the button is clicked, 
-            with args=(self, state)
-        :param only_on:  if True, the button only turns on when clicked, other buttons must turn it off. (callbacks only on activation)
-        """
-        super().__init__(board, name, bbox, visible, pinned)
+        super().__init__(board, name, bbox, True, pinned)
         logging.info("Created Button %s" % name)
-        self.state = init_state
+        self._states = states
+        self.state = states[0]
         self.moused_over = False
-        self.only_on = only_on
+        self.triggers = triggers
         self.callbacks = list(callbacks)
+        self.action_mouseup = action_mouseup
 
-    def _do_callbacks(self):
-        for callback in self.callbacks:
-            callback(self, self.state)
+    def _activate(self):
+        """
+        Change state and call callbacks.
+        """
+        old_state = self.state
+        self.state = self._states[(self._states.index(self.state) + 1) % len(self._states)]
+        if self.triggers is None or self.state in self.triggers:
+            for callback in self.callbacks:
+                callback(self, self.state, old_state)
 
     def mouse_event(self, event, x, y, flags, param):
         if self.in_bbox((x, y)):
             self.moused_over = True
             if event == cv2.EVENT_LBUTTONDOWN:
-                if self.only_on:
-                    if not self.state:
-                        self._do_callbacks()
-                    self.state = True
+                if not self.action_mouseup:
+                    self._activate()
+                    return self._release_mouse()
                 return self._capture_mouse()
             elif event == cv2.EVENT_LBUTTONUP:
-                if not self.only_on:
-                    self.state = not self.state
-                    self._do_callbacks()
+                if not self._has_mouse:
+                    return MouseReturnStates.unused
+                if self.action_mouseup:
+                    self._activate()
                 return self._release_mouse()
             return MouseReturnStates.captured if self._has_mouse else MouseReturnStates.released
         else:
@@ -62,10 +73,10 @@ class StateButton(Control):
         # Subclasses do something fancier, this is just a box and a label.
         thickness = 1
         if self.moused_over:
-            thickness +=2
+            thickness += 2
         if self._has_mouse:
             thickness += 5
-            
+
         if self.visible:
             p1 = (self._bbox['x'][0], self._bbox['y'][0])
             p2 = (self._bbox['x'][1], self._bbox['y'][1])
@@ -77,8 +88,11 @@ class StateButton(Control):
 
     def get_state(self):
         return self.state
+    def get_states(self):
+        return self._states
 
     def set_state(self, state):
+        # does not trigger callbacks!
         self.state = state
 
 
@@ -87,10 +101,14 @@ class ButtonBox(Control):
     A group of buttons that can be clicked.
     """
 
-    def __init__(self, board, name, bbox, button_grid, exclusive=False, visible=True, pinned=True, init_ind=0):
+    def __init__(self, board, name, bbox, button_grid, exclusive=False, visible=True, pinned=True):
         """
         (ignores button's individual bboxes, aranges according to bbox & button_grid)
         :param exclusive: if True, treated as radio buttons, else as checkboxes
+            Exclusive means only one can be true at a time.  For all buttons in such a ButtonBox:
+              * states must be (True, False),
+              * state can be set True by clicking, but can only be set to False by clicking on another button.
+              * each button gets an extra callback to enforce these conditions when it's activated.
         :param button_grid: list of lists of Button objects (can be None), 
             to be displayed in that arangement, in the bbox.
         """
@@ -101,16 +119,9 @@ class ButtonBox(Control):
         self._down_ind = None
 
         self._init_geom()
-        logging.info("Created ButtonBox %s (Exclusive=%s)" % (name, exclusive)) 
-        
+        self._init_semantics()
 
-        # set up callbacks so each button checks all the other buttons when changing state.
-        for button in self.buttons:
-            button.callbacks.append(self._radio_click_callback)
-
-            # and can only turn on if exclusive
-            if self._exclusive:
-                button.only_on = True   
+        logging.info("Created ButtonBox %s (Exclusive=%s)" % (name, exclusive))
 
     def _init_geom(self):
         x_min, x_max = self._bbox['x']
@@ -126,21 +137,36 @@ class ButtonBox(Control):
                                                    'y': (y_min + i * h, y_min + (i + 1) * h)})
                     self.buttons.append(button)
 
+    def _init_semantics(self):
+        # nothing to do for regular button boxes?
+
+        if self._exclusive:
+            # check all buttons are true/false:
+            for button in self.buttons:
+                if set(button.get_states())!=set((True, False)):
+                    raise ValueError("Radio Buttons must have states=(true,false).")
+                button.callbacks.append(self._radio_click_callback)
+
+    def _radio_click_callback(self, button, new_state, old_state):
+        """
+        (will not be called if self._exclusive is False)
+
+        This is an extra callback added to all buttons if the buttonbox is exclusive, i.e. a radio-button group.
+            if new_state is True:
+                Set other buttons to False. 
+            else:
+                set self to True (i.e. don't allow turning off a button, only deactivating it by selecting another).
+        """
+        if new_state:
+            for other_button in self.buttons:
+                if other_button is not button:
+                    other_button.set_state(False)
+        else:       
+            button.set_state(True)
+
     def move_to(self, x, y, new_bbox=None):
         super().move_to(x, y, new_bbox)
         self._init_geom()
-
-    def _radio_click_callback(self, button,state):
-        """
-        If exclusive, button has been selected, so turn off the others
-        """
-        if self._exclusive:    
-            print("Buttonbox %s is excluding all but %s" % (self.name,button.name))
-
-            for other_button in self.buttons:
-                if other_button != button:
-                    print("Turning off %s" % other_button.name)
-                    other_button.set_state(False)
 
     def mouse_event(self, event, x, y, flags, param):
         """
@@ -162,7 +188,7 @@ class ButtonBox(Control):
                 elif rv == MouseReturnStates.released:
                     capture_state = MouseReturnStates.released
         return capture_state
-    
+
     def render(self, img, show_bbox=True):
         for button in self.buttons:
             button.render(img, show_bbox=show_bbox)
