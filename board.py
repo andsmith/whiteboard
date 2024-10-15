@@ -32,7 +32,8 @@ class Board(object):
         """
         :param vectors: list of Vector objects.
         """
-        self.colors = get_color_names()
+        self.default_color = COLORS_RGB[BOARD_LAYOUT['default_color']]
+        self.colors = get_color_names()  # user selectable colors
         self.vectors = None # VectorManager()
         self.controls = None # ControlManager()
         self.tools = None # ToolManager()

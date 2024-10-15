@@ -8,7 +8,7 @@ from gui_components import UIElement, MouseReturnStates
 from controls import Control
 import logging
 from layout import COLORS_BGR, COLOR_BUTTONS, BOARD_LAYOUT
-
+from icon_artists import IconArtist, BUTTON_ARTISTS
 
 class Button(Control):
     """
@@ -183,3 +183,26 @@ class ColorButton(CircleButton):
         # draw color circle
         cv2.fillPoly(img, [floats_to_fixed(self._color_circle_points)],
                      self._color_rgb, lineType=cv2.LINE_AA,shift=PREC_BITS)
+
+class ToolButton(CircleButton):
+    """
+    A button representing a tool the user can select.
+    """
+
+    def __init__(self, board, name, bbox, pinned=False):
+        if name not in BUTTON_ARTISTS:
+            raise ValueError("Invalid tool name, no artist: %s" % name)
+        self._artist = BUTTON_ARTISTS[name]
+
+        super().__init__(board, name, bbox, action_mouseup=False,
+                         callbacks=(self._change_tool,), pinned=pinned)
+
+    def _change_tool(self, button, new_state, old_state):
+        if new_state:
+            self._board.tools.set_tool(self.name)
+
+    def _draw_icon(self, img):
+        self._artist.draw(img)
+
+
+    
