@@ -89,17 +89,17 @@ def test_widgets():
     b1 = Button(None, 'Button', {'x': (20, 125), 'y': (100, 128)})
 
     # button box, radio-button style
-    #buttons = [Button(None, '%s' % (lab,), None, ) for lab in ['a', 'b', 'c', 'd', 'e']]
-    #button_grid = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]  # 3 row and 2 col grid.
-    #bbx1 = ButtonBox(None, 'exclusive_button_box', {'x': (160, 290), 'y': (190, 280)}, button_grid, exclusive=True)
+    buttons = [Button(None, '%s' % (lab,), None, ) for lab in ['a', 'b', 'c', 'd', 'e']]
+    button_grid = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]  # 3 row and 2 col grid.
+    bbx1 = ButtonBox(None, 'exclusive_button_box', {'x': (160, 290), 'y': (190, 280)}, button_grid, exclusive=True, exclusive_init=buttons[1])
 
     # button box, (collection of unconstrained buttons)
     buttons = [Button(None, '%s' % (lab,), None, ) for lab in ['1', '2', '3', '4', '5','6']]
     button_grid = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]  # 3 row and 2 col grid.
-    import ipdb; ipdb.set_trace()
+    #import ipdb; ipdb.set_trace()
     bbx2 = ButtonBox(None, 'button_box', {'x': (300, 430), 'y': (190, 280)}, button_grid, exclusive=False)
 
-    t = ControlTester((500, 500), [slider1, slider2, b1, bbx2])
+    t = ControlTester((500, 500), [slider1, slider2, b1, bbx1,bbx2])
 
     t.run()
 
