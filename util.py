@@ -98,7 +98,7 @@ def floats_to_fixed(points):
     return np.round(points * PREC_SCALE).astype(np.int32)
 
 
-def scale_points_to_bbox(unit_points, bbox, margin_frac=0.3):
+def scale_points_to_bbox(unit_points, bbox, margin_frac=0.0):
     """
     Fit the points in the bounding box, padded by a margin.
 

@@ -48,15 +48,15 @@ class ButtonBox(Control):
         for i, row in enumerate(self._button_grid):
             for j, button in enumerate(row):
                 if button is not None:
-                    button.move_to(0, 0, new_bbox={'x': (x_min + j * w, x_min + (j + 1) * w),
-                                                   'y': (y_min + i * h, y_min + (i + 1) * h)})
+                    button.move_to((0, 0), new_bbox={'x': (x_min + j * w, x_min + (j + 1) * w),
+                                                     'y': (y_min + i * h, y_min + (i + 1) * h)})
                     self.buttons.append(button)
 
     def _init_semantics(self, init_on_button):
         if self._exclusive:
 
             init_set_state = init_on_button if init_on_button is not None else self.buttons[0]
-            
+
             for button in self.buttons:
                 # check all buttons are true/false:
                 if set(button.get_states()) != set((True, False)):
@@ -93,8 +93,8 @@ class ButtonBox(Control):
         else:
             button.set_state(True)
 
-    def move_to(self, x, y, new_bbox=None):
-        super().move_to(x, y, new_bbox)
+    def move_to(self, xy, new_bbox=None):
+        super().move_to(xy, new_bbox)
         self._init_geom()
 
     def mouse_event(self, event, x, y, flags, param):

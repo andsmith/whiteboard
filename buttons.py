@@ -7,8 +7,8 @@ from util import in_bbox, get_circle_points, floats_to_fixed, PREC_BITS
 from gui_components import UIElement, MouseReturnStates
 from controls import Control
 import logging
-from layout import COLORS_BGR, COLOR_BUTTONS, BOARD_LAYOUT
-from icon_artists import IconArtist, BUTTON_ARTISTS
+from layout import COLORS_BGR, COLOR_BUTTONS, BOARD_LAYOUT, TOOL_BUTTONS
+from icon_artists import  BUTTON_ARTISTS
 
 class Button(Control):
     """
@@ -126,25 +126,27 @@ class CircleButton(Button, ABC):
     Round button w/an outine indicating mouse state and something drawn in the middle.
     """
 
-    def __init__(self, board, name, bbox, callbacks=(), action_mouseup=True, pinned=False):
+    def __init__(self, board, name, bbox, callbacks=(), action_mouseup=True, pinned=False, outline_frac=None):
+        """
+        :param outline_frac: fraction of the button radius (half side-length of inscribed square) defining the radius of the outine.
+        """
+        self._outline_frac = outline_frac if outline_frac is not None else  TOOL_BUTTONS['outline_frac']
         super().__init__(board, name, bbox, callbacks=callbacks, action_mouseup=action_mouseup, pinned=pinned,show_bbox=False)
         self._set_geom()
+
 
     def _set_geom(self):
         """
         Set the geometry of the button based on the color.
         """
         x_span, y_span = self._bbox['x'][1] - self._bbox['x'][0], self._bbox['y'][1] - self._bbox['y'][0]
-        box_rad = min(x_span, y_span) / 2.
-        outline_thickness = box_rad * COLOR_BUTTONS['outline_frac']
-        margin_thickness = box_rad * COLOR_BUTTONS['margin_frac']
-
-        self._outline_rad = box_rad - margin_thickness
-        self._selected_rad = box_rad - margin_thickness - outline_thickness/2
-        self._circle_rad = self._outline_rad - outline_thickness
+        if x_span<0 or y_span <0:
+            raise ValueError("Invalid bbox for button %s: %s" % (self.name, self._bbox))
+        self._box_rad = min(x_span, y_span) / 2.
         self._circle_center = (self._bbox['x'][0] + x_span / 2, self._bbox['y'][0] + y_span / 2)
-        self._outline_circle_points = get_circle_points(self._circle_center, self._outline_rad)
-        self._select_points = get_circle_points(self._circle_center, self._selected_rad)
+        self._outline_rad = self._box_rad * self._outline_frac
+        self._select_points = get_circle_points(self._circle_center, self._outline_rad)
+        logging.info("Set geom for %s using outline_frac %s, _rad %s" % (self.name, self._outline_frac, self._outline_rad))
 
     def render(self, img):
         if self.moused_over and not self.state:
@@ -165,14 +167,17 @@ class ColorButton(CircleButton):
     A button representing a color the user can select.
     """
 
-    def __init__(self, board, name, bbox, color_name, pinned=False):
+    def __init__(self, board, name, bbox, color_name, pinned=False, circle_frac = None):
+        self._circle_frac = circle_frac if circle_frac is not None else COLOR_BUTTONS['circle_frac']
         self._color_name = color_name
         super().__init__(board, name, bbox, action_mouseup=False,
-                         callbacks=(self._change_color,), pinned=pinned)
+                         callbacks=(self._change_color,), pinned=pinned, outline_frac=COLOR_BUTTONS['outline_frac'])
         self._color_rgb = COLORS_BGR[color_name]
 
     def _set_geom(self):
         super()._set_geom()
+        self._circle_rad = self._circle_frac * self._box_rad
+
         self._color_circle_points = get_circle_points(self._circle_center, self._circle_rad)
 
     def _change_color(self, button, new_state, old_state):
@@ -189,20 +194,25 @@ class ToolButton(CircleButton):
     A button representing a tool the user can select.
     """
 
-    def __init__(self, board, name, bbox, pinned=False):
+    def __init__(self, board, name, bbox, pinned=False, **kwargs):
         if name not in BUTTON_ARTISTS:
             raise ValueError("Invalid tool name, no artist: %s" % name)
-        self._artist = BUTTON_ARTISTS[name]
+        self._artist = BUTTON_ARTISTS[name](board, bbox)
 
         super().__init__(board, name, bbox, action_mouseup=False,
-                         callbacks=(self._change_tool,), pinned=pinned)
+                         callbacks=(self._change_tool,), pinned=pinned, **kwargs)
+        
+    def move_to(self, xy, new_bbox=None):
+        # move the button and the artist
+        super().move_to(xy, new_bbox)
+        self._artist.move_to(xy, new_bbox)
 
     def _change_tool(self, button, new_state, old_state):
         if new_state:
             self._board.tools.set_tool(self.name)
 
     def _draw_icon(self, img):
-        self._artist.draw(img)
+        self._artist.render(img)
 
 
     

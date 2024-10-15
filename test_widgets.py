@@ -4,11 +4,11 @@ from slider import Slider
 from layout import COLORS_BGR, CONTROL_LAYOUT, EMPTY_BBOX, COLOR_BUTTONS, BOARD_LAYOUT
 from gui_components import MouseReturnStates
 import logging
-from buttons import Button, ColorButton
+from buttons import Button, ColorButton, ToolButton
 from button_box import ButtonBox
 
 TEST_COLORS = CONTROL_LAYOUT['color_box']['options']
-
+TEST_TOOLS = CONTROL_LAYOUT['tool_box']['options']
 
 class FakeToolManager(object):
     def __init__(self):
@@ -17,13 +17,16 @@ class FakeToolManager(object):
     def set_color(self, color):
         logging.info("Setting color to %s" % color)
 
+    def set_tool(self, tool):
+        logging.info("Setting tool to %s" % tool)
+
 
 class ControlTester(object):
 
     # fake app + board
     def __init__(self, win_size):
         self._win_size = win_size
-        self._default_color = COLORS_BGR[BOARD_LAYOUT['obj_color']]
+        self.default_color = COLORS_BGR[BOARD_LAYOUT['obj_color']]
         self._bkg_color = COLORS_BGR[BOARD_LAYOUT['bkg_color']]
         self.tools = FakeToolManager()
         self._blank_frame = np.zeros((win_size[1], win_size[0], 3), dtype=np.uint8)
@@ -117,6 +120,7 @@ def test_widgets():
     bbx2 = ButtonBox(ct, 'button_box', {'x': (300, 430), 'y': (190, 280)}, button_grid, exclusive=False)
 
     # color button
+
     b2 = ColorButton(ct, 'Color Button', {'x': (20, 80), 'y': (20, 80)}, 'orange')
 
     # Color button box
@@ -125,8 +129,13 @@ def test_widgets():
                      for row in TEST_COLORS]
     bbx3 = ButtonBox(ct, 'color_button_box', {'x': (170, 260), 'y': (300, 480)}, color_buttons, exclusive=True)
 
+    # Tool button box
 
-    ct.add_widgets( [slider1, slider2, b1, bbx1, bbx2, b2, bbx3])
+    tool_buttons = [[ToolButton(ct, tool_name, EMPTY_BBOX) for tool_name in row] for row in TEST_TOOLS]
+    
+    bbx4 = ButtonBox(ct, 'tool_button_box', {'x': (300, 430), 'y': (300, 480)}, tool_buttons, exclusive=True)
+
+    ct.add_widgets( [slider1, slider2, b1, bbx1, bbx2, b2, bbx3, bbx4])
     ct.run()
 
     return

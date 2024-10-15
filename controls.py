@@ -7,6 +7,7 @@ from util import in_bbox
 from gui_components import UIElement, MouseReturnStates, UIManager
 
 
+
 class Control(UIElement):
     """
     Abstract class for a thing you can interact with on the window that isn't the board.
@@ -32,10 +33,10 @@ class Control(UIElement):
             return True
         return in_bbox(self._bbox, xy_px)
 
-    def move_to(self, x, y, new_bbox=None):
+    def move_to(self, xy, new_bbox=None):
         if new_bbox is None:
-            self._bbox = {'x': (x, x + self._bbox['x'][1] - self._bbox['x'][0]),
-                          'y': (y, y + self._bbox['y'][1] - self._bbox['y'][0])}
+            self._bbox = {'x': (xy[0], xy[0] + self._bbox['x'][1] - self._bbox['x'][0]),
+                          'y': (xy[1], xy[1] + self._bbox['y'][1] - self._bbox['y'][0])}
         else:
             self._bbox = new_bbox
         self._set_geom()

@@ -25,7 +25,7 @@ COLORS_RGB = {'black': (0, 0, 0),
               'navy': (0, 0, 128)}
 COLORS_BGR = {k: tuple(reversed(v)) for k, v in COLORS_RGB.items()}
 
-
+DEFAULT_ICON_MARGIN_FRAC = 0.5
 
 UI_LINE_THICKNESS = 2
 
@@ -49,7 +49,8 @@ CONTROL_LAYOUT = {
 
 
     # toolbox, strip in the middle of the right side of the window
-    'toolbox': {'loc': {'x': [.85, .3],
+    'tool_box': {'options': [['pencil', 'line'], ['rectangle', 'circle'], ['select', 'pan']],
+                'loc': {'x': [.85, .3],
                         'y': [.05, .6]},
                 'line_widths': [1, 2, 3, 5, 8, 13]},
 
@@ -88,8 +89,12 @@ SLIDERS = {'indent': .05,  # fraction of bounding box length (right margin deter
            }
 EMPTY_BBOX = {'x': [0,1], 'y': [0,1]}
 
-COLOR_BUTTONS = {'margin_frac': 0.2,  # Circle fits in bbox with this margin
-                 'outline_frac': 0.2,  # Fraction of bbox width for outline
+COLOR_BUTTONS = {'circle_frac': 0.7,  # Circle fits in bbox with this margin
+                 'outline_frac': .9,  # Fraction of bbox width for outline
                  'mouseover_color': 'neon green',
                  'selected_color': BOARD_LAYOUT['obj_color'],
                  'unselected_color': 'red'}
+
+TOOL_BUTTONS = {'outline_frac': 1.0,  # Fraction of bbox width for outline    
+                'margin_frac': 0.1,  # Fraction of bbox width for margin in drawing
+                }
