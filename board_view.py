@@ -24,6 +24,9 @@ class BoardView(object):
         # bounding box of this view within the board, in board coords.
         self.board_bbox = {'x': (origin[0], origin[0] + size[0] / zoom),  
                            'y': (origin[1], origin[1] + size[1] / zoom)}
+        
+    def __hash__(self) -> int:
+        return hash((self.origin, self.zoom, self.size))
 
     def from_new_size(self, new_size):
         """
@@ -55,8 +58,8 @@ class BoardView(object):
     def pts_to_pixels(self, xy):
         # flip y?
         xy = np.array(xy)
-        xy_px = (xy - self.origin) * self.zoom
-        return xy_px.astype(np.int32)
+        return  (xy - self.origin) * self.zoom
+        
     
     def sees_bbox(self, bbox):
         """

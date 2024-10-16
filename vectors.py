@@ -7,7 +7,7 @@ import cv2
 import numpy as np
 from layout import COLORS_RGB, VECTOR_DEF, EMPTY_BBOX
 from abc import ABC, abstractmethod
-from util import get_bbox
+from util import get_bbox, PREC_BITS,PREC_SCALE, floats_to_fixed, get_circle_points
 import json
 import time
 
@@ -104,11 +104,9 @@ class PencilVec(Vector):
     _NAME = 'pencil'
     def render(self, img, view):
         if view.sees_bbox(self._bbox):
-            thickness = int(self._thickness * view.zoom)
-            thickness += self._highlight_level * 2  # add 2 pixels per highlight (regardless of zoom)
-            coords = view.pts_to_pixels(self._points)
+            coords = [floats_to_fixed(view.pts_to_pixels(self._points))]
             if len(self._points) > 1:
-                cv2.polylines(img, [np.array(coords)], False, self._color, self._thickness, lineType=cv2.LINE_AA)
+                cv2.polylines(img, coords, False, self._color, self._thickness, lineType=cv2.LINE_AA, shift=PREC_BITS)
 
 
 class LineVec(PencilVec):
@@ -127,24 +125,35 @@ class CircleVec(LineVec):
     """
     Circle vector is defined by the center and a point on the circumference, a LineVec rendered differently.
     """
+    def __init__(self, color, thickness):
+        super().__init__(color, thickness)
+        self._last_view = None  # need to re-sample when this changes
+        self._draw_pts = None
+
+    def _calc(self, view):
+        center =np.array(self._points[0])
+        radius = np.linalg.norm(np.array(self._points[1]) - center)
+        circle_pts = get_circle_points(center, radius)
+        self._draw_pts = [floats_to_fixed(view.pts_to_pixels(circle_pts))]
+
     _NAME = 'circle'
     def render(self, img, view):
         if view.sees_bbox(self._bbox):
-            thickness = int(self._thickness * view.zoom)
-            thickness += self._highlight_level * 2  # add 2 pixels per highlight (regardless of zoom)
-            coords = view.pts_to_pixels(self._points)
-            center, radius = coords[0], np.linalg.norm(coords[1] - coords[0])
-            cv2.circle(img, tuple(center), int(radius), self._color, thickness, lineType=cv2.LINE_AA)
+            if self._last_view is None or view != self._last_view:
+                self._calc(view)
+                self._last_view = view
+            cv2.polylines(img, self._draw_pts, True, self._color, self._thickness, lineType=cv2.LINE_AA, shift=PREC_BITS)
 
 
-class RectangleVec(LineVec):
+class RectangleVec(CircleVec):
     """
     Rectangle vector is defined by two opposite corners, also a LineVec subclass.
     """
     _NAME = 'rectangle'
-    def render(self, img, view):
-        if view.sees_bbox(self._bbox):
-            thickness = int(self._thickness * view.zoom)
-            thickness += self._highlight_level * 2  # add 2 pixels per highlight (regardless of zoom)
-            coords = view.pts_to_pixels(self._points)
-            cv2.rectangle(img, tuple(coords[0]), tuple(coords[1]), self._color, thickness, lineType=cv2.LINE_AA)
+    def _calc(self, view):
+        x1, y1 = self._points[0]
+        x2, y2 = self._points[1]
+        x = [x1, x2, x2, x1, x1]
+        y = [y1, y1, y2, y2, y1]
+        rect_pts = np.array([x, y]).T
+        self._draw_pts = [floats_to_fixed(view.pts_to_pixels(rect_pts))]

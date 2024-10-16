@@ -20,7 +20,7 @@ def test_vectors(show=True):
     BKG = 'off_white'
     w, h = display_size
     n_each = 50  # create this many test vectors
-    n_pts = 15  # number of points to add to each vector
+    n_pts = 20  # number of points to add to each vector
     dist_sd = 3  # standard deviation of the distance between points (random walk)
     vectors = []
     all_pts = []
@@ -95,7 +95,7 @@ def test_board_view():
     Create a bunch of points in [0, 100] x [0, 10], create a board view that fits them into a 640x480 window.
     Create a few bboxes that should be in the view and a few that should not then check them.
     """
-    #np.random.seed(0)
+    np.random.seed(0)
     size = (640, 480)
     points = np.random.rand(100*2).reshape((100, 2)) * np.array([100, 10])
     view = get_board_view(points, size, margin=0.025)
@@ -110,7 +110,7 @@ def test_board_view():
                         ('bottom bbox', {'x': (0, 100), 'y': (-220, -210)})]
     for name, bbox in visible_bboxes:
         assert view.sees_bbox(bbox), f"{name} should be visible: {bbox} should be in {view.board_bbox}"
-        
+
     for name, bbox in offscreen_bboxes:
         assert not view.sees_bbox(bbox), f"{name} should not be visible {bbox} should not be in {view.board_bbox}"
     print("test_vectors.py: All tests pass")
