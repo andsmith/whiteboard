@@ -37,10 +37,10 @@ class Button(Control):
         self.moused_over = False
         self.callbacks = list(callbacks)
         self.action_mouseup = action_mouseup
-        self._mouseover_color = COLORS_BGR[COLOR_BUTTONS['mouseover_color']]
-        self._selected_color = COLORS_BGR[COLOR_BUTTONS['selected_color']]
-        self._unselected_color = None # COLORS_BGR[COLOR_BUTTONS['unselected_color']]
-        self._text_color = COLORS_BGR[BOARD_LAYOUT['obj_color']]
+        self._mouseover_color_v = COLORS_BGR[COLOR_BUTTONS['mouseover_color']]
+        self._selected_color_v = COLORS_BGR[COLOR_BUTTONS['selected_color']]
+        self._unselected_color_v = None # COLORS_BGR[COLOR_BUTTONS['unselected_color']]
+        self._text_color_v = COLORS_BGR[BOARD_LAYOUT['obj_color']]
         
         self._show_bbox = show_bbox
 
@@ -77,37 +77,37 @@ class Button(Control):
                 return self._release_mouse()
             return MouseReturnStates.captured if self._has_mouse else MouseReturnStates.unused
         
-    def _draw_bbox(self, img, color,thickness=1):
+    def _draw_bbox(self, img, color_v,thickness=1):
         p1 = (self._bbox['x'][0], self._bbox['y'][0])
         p2 = (self._bbox['x'][1], self._bbox['y'][1])
-        cv2.rectangle(img, p1, p2, color, thickness=thickness, lineType=cv2.LINE_AA)
+        cv2.rectangle(img, p1, p2, color_v, thickness=thickness, lineType=cv2.LINE_AA)
 
     def render(self, img):
         # Subclasses do something fancier, this is just a box and a label.
         # Show_bbox=true will draw the bounding box of the button, depending on mouseover/button state.
         if self.visible:
 
-            color = self._get_state_color_name()
+            color_v = self._get_state_color()
             if self._show_bbox:
-                color = color if color is not None else self._text_color  # show anyway 
+                color_v = color_v if color_v is not None else self._text_color_v  # show anyway 
 
                 thickness=1 if not self.state else 2
-                self._draw_bbox(img, color, thickness)
+                self._draw_bbox(img, color_v, thickness)
 
             label = '{}={}'.format(self.name,  self.state )
             cv2.putText(img, label, (self._bbox['x'][0] + 5, self._bbox['y'][0] + 15),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, self._text_color, 1, lineType=cv2.LINE_AA)
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, self._text_color_v, 1, lineType=cv2.LINE_AA)
             
-    def _get_state_color_name(self):
+    def _get_state_color(self):
         """
         For displaying the state of the button.
         """
         
-        c = self._unselected_color
+        c = self._unselected_color_v
         if self.moused_over:
-            c = self._mouseover_color
+            c = self._mouseover_color_v
         if self.state:
-            c = self._selected_color
+            c = self._selected_color_v
         return c
 
     def get_state(self):
@@ -151,10 +151,10 @@ class CircleButton(Button, ABC):
     def render(self, img):
         if self.moused_over and not self.state:
             cv2.polylines(img, [floats_to_fixed(self._select_points)], True,
-                          self._mouseover_color, lineType=cv2.LINE_AA, thickness=1,shift=PREC_BITS)
+                          self._mouseover_color_v, lineType=cv2.LINE_AA, thickness=1,shift=PREC_BITS)
         elif self.state:
             cv2.polylines(img, [floats_to_fixed(self._select_points)], True,
-                          self._selected_color, lineType=cv2.LINE_AA, thickness=1,shift=PREC_BITS)   
+                          self._selected_color_v, lineType=cv2.LINE_AA, thickness=1,shift=PREC_BITS)   
         self._draw_icon(img)
 
     @abstractmethod
@@ -167,12 +167,13 @@ class ColorButton(CircleButton):
     A button representing a color the user can select.
     """
 
-    def __init__(self, board, name, bbox, color_name, pinned=False, circle_frac = None):
+    def __init__(self, board, name, bbox, color_n, pinned=False, circle_frac = None):
         self._circle_frac = circle_frac if circle_frac is not None else COLOR_BUTTONS['circle_frac']
-        self._color_name = color_name
+        self._color_n = color_n        
+        self._color_v = COLORS_BGR[color_n]
+
         super().__init__(board, name, bbox, action_mouseup=False,
                          callbacks=(self._change_color,), pinned=pinned, outline_frac=COLOR_BUTTONS['outline_frac'])
-        self._color_rgb = COLORS_BGR[color_name]
 
     def _set_geom(self):
         super()._set_geom()
@@ -182,12 +183,12 @@ class ColorButton(CircleButton):
 
     def _change_color(self, button, new_state, old_state):
         if new_state:
-            self._board.tools.set_color(self._color_name)
+            self._board.tools.set_color(self._color_n)
 
     def _draw_icon(self, img):
         # draw color circle
         cv2.fillPoly(img, [floats_to_fixed(self._color_circle_points)],
-                     self._color_rgb, lineType=cv2.LINE_AA,shift=PREC_BITS)
+                     self._color_v, lineType=cv2.LINE_AA,shift=PREC_BITS)
 
 class ToolButton(CircleButton):
     """
