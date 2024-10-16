@@ -109,9 +109,8 @@ def test_board_view():
                         ('top bbox', {'x': (0, 100), 'y': (220, 230)}),
                         ('bottom bbox', {'x': (0, 100), 'y': (-220, -210)})]
     for name, bbox in visible_bboxes:
-        if name=='big bbox':
-            import ipdb; ipdb.set_trace()
         assert view.sees_bbox(bbox), f"{name} should be visible: {bbox} should be in {view.board_bbox}"
+        
     for name, bbox in offscreen_bboxes:
         assert not view.sees_bbox(bbox), f"{name} should not be visible {bbox} should not be in {view.board_bbox}"
     print("test_vectors.py: All tests pass")

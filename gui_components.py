@@ -5,7 +5,7 @@ import numpy as np
 import cv2
 import json
 from abc import ABC, abstractmethod
-from layout import COLORS_RGB
+from layout import COLORS_BGR
 import logging
 from enum import IntEnum
 from util import in_bbox, bboxes_intersect
@@ -126,10 +126,10 @@ class UIWindow(UIElement):
     """
 
     def __init__(self, board, window_name, window_size, visible=True,
-                  win_params=cv2.WINDOW_NORMAL, bkg_color = 'off_white'):
-        self._color = COLORS_RGB[bkg_color]
+                  win_params=cv2.WINDOW_NORMAL, bkg_color_n = 'off_white'):
+        self._color_v = COLORS_BGR[bkg_color_n]
         self._frame = None  # current frame, need to redraw if None.
-        self._blank = np.zeros((window_size[1], window_size[0], 3), dtype=np.uint8) + self._color
+        self._blank = (np.zeros((window_size[1], window_size[0], 3))+ self._color_v).astype(dtype=np.uint8) 
         self._window_size = window_size
         self._win_params = win_params
         bbox = {'x': (0, window_size[0]), 'y': (0, window_size[1])}

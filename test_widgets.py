@@ -26,11 +26,11 @@ class ControlTester(object):
     # fake app + board
     def __init__(self, win_size):
         self._win_size = win_size
-        self.default_color = COLORS_BGR[BOARD_LAYOUT['obj_color']]
-        self._bkg_color = COLORS_BGR[BOARD_LAYOUT['bkg_color']]
+        self.default_color_v = COLORS_BGR[BOARD_LAYOUT['obj_color']]
+        self._bkg_color_v = COLORS_BGR[BOARD_LAYOUT['bkg_color']]
         self.tools = FakeToolManager()
         self._blank_frame = np.zeros((win_size[1], win_size[0], 3), dtype=np.uint8)
-        self._blank_frame[:] = self._bkg_color
+        self._blank_frame[:] = self._bkg_color_v
         self._win_name = 'Control Tester'
         self._controls = None
         self._control_with_mouse = None

@@ -5,7 +5,6 @@ import numpy as np
 import cv2
 import json
 from abc import ABC, abstractmethod
-from layout import COLORS_RGB
 import logging
 from enum import IntEnum
 from util import in_bbox, bboxes_intersect

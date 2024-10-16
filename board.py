@@ -1,5 +1,5 @@
 import json
-from layout import BOARD_LAYOUT, COLORS_RGB, CONTROL_LAYOUT
+from layout import BOARD_LAYOUT, COLORS_BGR, CONTROL_LAYOUT
 import logging
 import numpy as np
 from enum import IntEnum
@@ -8,6 +8,11 @@ from tools import Tool
 import cv2
 from util import in_bbox
 from abc import ABC, abstractmethod
+
+from controls import ControlManager
+from vector_manager import VectorManager
+from tools import ToolManager
+
 
 def get_color_names():
     return [c for row in CONTROL_LAYOUT['control_box']['colors'] for c in row]
@@ -28,15 +33,17 @@ class Board(object):
 
     _WINDOWS = ['board', 'control']
 
-    def __init__(self, canv_size, ctrl_size):
+    def __init__(self, state_file, canv_size, ctrl_size):
         """
         :param vectors: list of Vector objects.
         """
-        self.default_color = COLORS_RGB[BOARD_LAYOUT['default_color']]
-        self.colors = get_color_names()  # user selectable colors
-        self.vectors = None # VectorManager()
-        self.controls = None # ControlManager()
-        self.tools = None # ToolManager()
+        self.default_color_v = COLORS_BGR[BOARD_LAYOUT['default_color']]
+        self.color_names = get_color_names()  # user selectable colors
+
+        # Three kinds of UI elements, can talk to each other via the shared board object:
+        self.vectors = VectorManager(self._board, state_file)
+        self.controls = ControlManager(self._board)
+        self.tools = ToolManager(self._board)
 
     def add_vector(self, vector):
         self._vectors.append(vector)
@@ -63,7 +70,7 @@ class Board(object):
         if self._frame is None:
             self._frame = np.zeros((self._window_size[1], self._window_size[0], 3), np.uint8)
 
-            self._frame[:] = self.bkg_color
+            self._frame[:] = self.bkg_color_v
             for vector in self.vectors:
                 vector.render(self._frame)
             for element in self._elements:
@@ -71,11 +78,11 @@ class Board(object):
 
         return self._frame
 
-        
     def canv_mouse_callback(self, event, x, y, flags, param):
         """
 
         """
+
     def _mouse_callback(self, event, x, y, view):
         """
         On a mouse event, if the mouse is in use, send the event the relevent element.

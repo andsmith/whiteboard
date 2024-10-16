@@ -30,7 +30,7 @@ class IconArtist(GUIArtist, ABC):
         self._margin_frac = margin_frac if margin_frac is not None else DEFAULT_ICON_MARGIN_FRAC
         
         super().__init__(self._get_name(), bbox)
-        self._color = board.default_color
+        self._color_v = board.default_color_v
         self._lines = []  # list of np.int32 arrays of points (each is an Nx2 polyline)
         self._ctrl_points = []  # list of control points (Cx2)
         self._set_geom()
@@ -72,7 +72,7 @@ class IconArtist(GUIArtist, ABC):
         Draw the icon on the image w/ a bounding box.
         """
         cv2.rectangle(img, (self._bbox['x'][0], self._bbox['y'][0]),
-                      (self._bbox['x'][1], self._bbox['y'][1]), self._color, 1)
+                      (self._bbox['x'][1], self._bbox['y'][1]), self._color_v, 1)
         self.render(img)
 
     def render(self, img):
@@ -80,7 +80,7 @@ class IconArtist(GUIArtist, ABC):
         Draw the unfilled circle, with the control points.
         """
         cv2.polylines(img, self._lines, True,
-                      self._color, lineType=cv2.LINE_AA, thickness=1, shift=PREC_BITS)
+                      self._color_v, lineType=cv2.LINE_AA, thickness=1, shift=PREC_BITS)
         for ctrl_point in self._ctrl_points:
             self._draw_ctrl_point(img, ctrl_point)
 
@@ -147,7 +147,7 @@ class PencilIcon(CircleIcon):
 
     def render(self, img):
         cv2.polylines(img, self._lines, False,
-                      self._color, lineType=cv2.LINE_AA, thickness=1, shift=PREC_BITS)
+                      self._color_v, lineType=cv2.LINE_AA, thickness=1, shift=PREC_BITS)
         self._draw_ctrl_point(img, self._ctrl_point1)
         self._draw_ctrl_point(img, self._ctrl_point2)
 
@@ -228,7 +228,7 @@ _DEFAULT_COLOR_BGR = COLORS_BGR[BOARD_LAYOUT['obj_color']]
 
 class FakeBoard:
     def __init__(self):
-        self.default_color = _DEFAULT_COLOR_BGR
+        self.default_color_v = _DEFAULT_COLOR_BGR
 
 
 def test_icon_artists():
