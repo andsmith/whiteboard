@@ -69,12 +69,12 @@ class UIElement(GUIArtist, ABC):
         self._has_mouse = False
 
     @abstractmethod
-    def mouse_event(self, event,xy, win_name):
+    def mouse_event(self, event,xy, view):
         """
         Handle mouse events, as sent from a class inheriting from MouseEventManager.
         :param event: cv2.EVENT_...
         :param xy: (x, y) tuple, coordinates within the window of the event.
-        :param win_name: string, name of the window the event was in.
+        :param view: BoardView object (which includes the window that the event was in)
         :return: a MouseReturnStates enum value, whether this element used the event, 
             used it and wants future events (captured), or used it and is done with events (released).
         """
@@ -121,7 +121,7 @@ class MouseEventManager(UIElement):
                 self._element_with_mouse = None
         else:
 
-            
+
             for control in self._controls:
                 # Controls check if the mouse is in their bbox.
                 rv = control.mouse_event(event,  xy, view)
