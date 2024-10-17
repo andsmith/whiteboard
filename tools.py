@@ -33,7 +33,8 @@ class Tool(UIElement):
 
 
     def render(self, img):
-        # override if vectors in progress require special rendering
+        # Override if vectors in progress require special rendering
+        # or to render the tool itself as a cursor, etc.
         if self._active_vec is not None:
             self._active_vec.render(img)
 
@@ -139,7 +140,7 @@ class ToolManager(UIManager):
               'select': Select}
 
     def __init__(self, board, init_tool_name = 'pencil', init_color = 'black', init_thickness = 2):
-        super().__init__(board, 'Tool Manager', None, visible=False, pinned=True)
+        super().__init__(board, 'Tool Manager', None, visible=False)
         self._color = init_color
         self._thickness = init_thickness 
         self.switch_tool(init_tool_name)

@@ -12,6 +12,7 @@ from abc import ABC, abstractmethod
 from controls import ControlManager
 from vector_manager import VectorManager
 from tools import ToolManager
+from zoom_window import BoardBBox
 
 
 def get_color_names():
@@ -29,11 +30,8 @@ class Board(object):
 
     Renders both windows.
     """
-    _board_MODES = ['pan', 'zoom']
 
-    _WINDOWS = ['board', 'control']
-
-    def __init__(self, state_file, canv_size, ctrl_size):
+    def __init__(self, state_file):
         """
         :param vectors: list of Vector objects.
         """
@@ -41,9 +39,17 @@ class Board(object):
         self.color_names = get_color_names()  # user selectable colors
 
         # Three kinds of UI elements, can talk to each other via the shared board object:
-        self.vectors = VectorManager(self._board, state_file)
-        self.controls = ControlManager(self._board)
-        self.tools = ToolManager(self._board)
+        self.vectors = VectorManager(self, state_file)
+        self.controls = ControlManager(self)
+        self.tools = ToolManager(self)
+
+        # Windows will create controls that belong in them, and add them via add_element(), but
+        # We need to create the Zoom*Control objects here because it will intercept mouse signals,
+        # and have a presence in both windows, and they share state (the board bbox).
+        bbb = BoardBBox(x_span=BOARD_LAYOUT['init_zoom_window_extent']['x'],
+                        y_span=BOARD_LAYOUT['init_zoom_window_extent']['y'])
+        self.controls.add_element(bbb.makeViewControl(self, self.controls))
+        self.controls.add_element(bbb.makeViewControl(self, self.controls))
 
     def add_vector(self, vector):
         self._vectors.append(vector)

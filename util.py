@@ -1,6 +1,35 @@
 import cv2
 import numpy as np
 
+def corners_from_bbox(bbox):
+    """
+    :param bbox:  dict(x=(x_min, x_max), y=(y_min, y_max))
+    :return: 4x2 array of corner points
+    """
+    x_min, x_max = bbox['x']
+    y_min, y_max = bbox['y']
+    return np.array([(x_min, y_min),
+                     (x_max, y_min),
+                     (x_max, y_max),
+                     (x_min, y_max)])
+
+def move_bbox_to(bbox, xy):
+    """
+    Translate the bbox.
+    """
+    w, h = bbox['x'][1] - bbox['x'][0], bbox['y'][1] - bbox['y'][0]
+    return {'x': (xy[0], xy[0] + w),
+            'y': (xy[1], xy[1] + h)}
+
+def unit_to_abs_bbox(unit_bbox, win_size):
+    """
+    Scale the bounding box within [0,1]x[0,1] to [0, win_size[0]]x[0, win_size[1]]
+    """
+    x_min, x_max = unit_bbox['x']
+    y_min, y_max = unit_bbox['y']
+    return {'x': (int(x_min * win_size[0]), int(x_max * win_size[0])),
+            'y': (int(y_min * win_size[1]), int(y_max * win_size[1]))}
+
 
 def get_font_size(bbox, orientation):
     """

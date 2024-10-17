@@ -36,36 +36,42 @@ BOARD_LAYOUT = {'win_size': (1200, 800),
                  'obj_color': 'dark_dark_gray',
                  'init_zoom': 1.0,  
                  'init_origin': (0, 0),
+                 'init_zoom_window_extent': {'x':(0.05,0.5),  # upper left corner
+                                             'y':(0.05,0.5)},
                  'zoom_bar': {'loc': {'x': [.85, .95],
                                       'y': [.05, .475],
                                       'orientation': 'vertical'}, }, }
 
 # Control is the user input window.
+
+_CONTROL_MARGIN = 0.2
 CONTROL_LAYOUT = {
     'win_name': 'Whiteboard Controls',
     'win_size': (800, 600),
     'init_zoom': 2.0,  # wrt board window
     'init_origin': (0, 0), # wrt board window
 
+    # Zoom window aspect is defined in BOARD_LAYOUT, will zoom in this window to fit vertically in this range:
+    'init_zoom_window_y_extent':(_CONTROL_MARGIN,1.-_CONTROL_MARGIN),
 
     # toolbox, strip in the middle of the right side of the window
     'tool_box': {'options': [['pencil', 'line'], ['rectangle', 'circle'], ['select', 'pan']],
-                'loc': {'x': [.85, .3],
-                        'y': [.05, .6]},
+                'loc': {'x': [.85, 95],
+                        'y': [.3, .6]},
                 'line_widths': [1, 2, 3, 5, 8, 13]},
 
     # color box, strip below toolbox, 10% width, 5% separation
-    'color_box': {'loc': {'x': [.05, .3],
-                           'y': [.15, .6]},
+    'color_box': {'loc': {'x': [.05, .15],
+                           'y': [.3, .6]},
                    'options': [['black', 'gray'],
                                ['red', 'orange'],
                                ['blue', 'yellow'],
                                ['purple', 'green']]},
 
-    # zoom slider-bar, vertical, left side of window
-    'zoom_bar': {'loc': {'x': [.05, .15],
-                         'y': [.05, .40],
-                         'orientation': 'vertical'}, },
+    # zoom slider-bar, horizontal, accros bottom.
+    'zoom_slider': {'loc': {'x': [.05, .95],
+                         'y': [.85, .95],
+                         'orientation': 'horizontal'}, },
 }
 
 VECTOR_DEF = {'ctrl_pts': {'color': 'neon green',
@@ -98,3 +104,8 @@ COLOR_BUTTONS = {'circle_frac': 0.7,  # Circle fits in bbox with this margin
 TOOL_BUTTONS = {'outline_frac': 1.0,  # Fraction of bbox width for outline    
                 'margin_frac': 0.1,  # Fraction of bbox width for margin in drawing
                 }
+
+
+ZOOM_BOX = {'color': 'neon green',
+            'line_thickness': 2,
+            'reize_corner_frac': 0.2}  # Fraction of box dims for resize corner

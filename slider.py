@@ -26,7 +26,7 @@ class Slider(Control):
         :param init_pos: float, initial position of the slider, reletive to endpoints.
         """
         logging.info("Creating %s slider '%s' in bbox %s." % (orientation, label, bbox))
-        super().__init__(board, label, bbox, visible, pinned=True)
+        super().__init__(board, label, bbox, visible)
         self._label = label
         self._orientation = orientation
         self._values = values
@@ -177,21 +177,15 @@ class Slider(Control):
             max_width = max(max_width, width)
             max_height = max(max_height, height)
         return max_width, max_height
-
-    def mouse_event(self, event, x, y, flags, param):
-        """
-        Handle mouse events:
-           if we have the mouse, move the tab accordingly
-        :returns: MouseReturnStates
-        """
-        if self._has_mouse:
-            if event == cv2.EVENT_LBUTTONUP:
-                return self._release_mouse()
-            elif event == cv2.EVENT_MOUSEMOVE:
-                self._cur_value_rel = self._click_to_rel_value((x, y))
-                return MouseReturnStates.captured
-        else:
-            if event == cv2.EVENT_LBUTTONDOWN and in_bbox(self._bbox, (x, y)):
-                self._cur_value_rel = self._click_to_rel_value((x, y))
-                return self._capture_mouse()
-        return MouseReturnStates.unused
+    
+    def mouse_down(self, xy, window_name):
+        self._cur_value_rel = self._click_to_rel_value(xy)
+        return self._capture_mouse()
+    
+    def mouse_up(self, xy, window_name):
+        return self._release_mouse()
+    
+    def mouse_move(self, xy, window_name):
+        self._cur_value_rel = self._click_to_rel_value(xy)
+        return MouseReturnStates.captured
+    

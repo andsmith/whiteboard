@@ -13,13 +13,15 @@ from util import in_bbox, bboxes_intersect
 
 class BoardView(object):
     """
-    Represents the view of some part of the board (the cartesian plane).
+    Represents the view of some part of the board (the cartesian plane) associated
+    with a window that renders part of it.  (controls/tools render differently depending on the view.)
     """
 
-    def __init__(self, size, origin, zoom):
+    def __init__(self, win_name, size, origin, zoom):
         self.origin = origin  # upper left pixel in the view has this position in the board.
         self.zoom = zoom  # pixels per board unit
         self.size = size  # size of the view in pixels (w x h)
+        self.win_name = win_name # name of the window that renders this view.
 
         # bounding box of this view within the board, in board coords.
         self.board_bbox = {'x': (origin[0], origin[0] + size[0] / zoom),  
@@ -49,7 +51,7 @@ class BoardView(object):
             y_center = (self.board_bbox['y'][0] + self.board_bbox['y'][1]) / 2
             y_range = new_size[1] / zoom
             origin = (self.board_bbox['x'][0], y_center - y_range / 2)
-        return BoardView(new_size, origin, zoom)
+        return BoardView( self.win_name,new_size, origin, zoom)
 
     def pts_from_pixels(self, xy):
         xy = np.array(xy)
@@ -70,7 +72,7 @@ class BoardView(object):
     
 
 
-def get_board_view(points, win_size, margin=0.05):
+def get_board_view(name,points, win_size, margin=0.05):
     """
     Return a BoardView object that cointains all the points centered in it w/a margin.
     """
@@ -101,4 +103,4 @@ def get_board_view(points, win_size, margin=0.05):
     origin = (x_min - x_margin, y_min - y_margin)
     size = (x_range + 2 * x_margin, y_range + 2 * y_margin)
     zoom = min(win_size[0] / size[0], win_size[1] / size[1])
-    return BoardView(win_size, origin, zoom)
+    return BoardView(name,win_size, origin, zoom)

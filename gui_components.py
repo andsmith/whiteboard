@@ -59,23 +59,24 @@ class UIElement(GUIArtist, ABC):
     currently pressed, no drawing can be done until the control button is released.)
     """
 
-    def __init__(self, name, bbox, visible=True, pinned=True):
+    def __init__(self, name, bbox, visible=True):
         """
         :param bbox: {'x': (x_min, x_max), 'y': (y_min, y_max)}
         :param visible: bool, whether the control is visible initially
-        :param pinned: bool, whether the control is pinned to the window (True) or moves/resizes with the board (False)
         """
         super().__init__(name, bbox)
         self.visible = visible
-        self._pinned = pinned
         self._has_mouse = False
 
     @abstractmethod
-    def mouse_event(self, event, x, y, flags, param):
+    def mouse_event(self, event,xy, win_name):
         """
-        Handle mouse events, callback from cv2 or parent UIElement.
-        NOTE:  UIElements are responsible for checking if the mouse is in their bounding box (if relevant).
-        :returns: MouseReturnStates state as appropriate, 
+        Handle mouse events, as sent from a class inheriting from MouseEventManager.
+        :param event: cv2.EVENT_...
+        :param xy: (x, y) tuple, coordinates within the window of the event.
+        :param win_name: string, name of the window the event was in.
+        :return: a MouseReturnStates enum value, whether this element used the event, 
+            used it and wants future events (captured), or used it and is done with events (released).
         """
         pass
 
@@ -91,23 +92,65 @@ class UIElement(GUIArtist, ABC):
         return MouseReturnStates.captured
 
     
-class UIManager(UIElement, ABC):
+class MouseEventManager(UIElement):
+    """
+    Base class for objects with many UIElement objects for deciding which gets mouse signals.
+    (I.e. UIWindow, UIManager, and ButtonBox classes)
+
+    Take 
+    """
+    def init_mouse(self):
+        self._cur_xy = None
+        self._click_xy = None
+        self._moused_over_element = None
+
+    def mouse_event(self, event, xy, view):
+        """
+        Mouse event in the control window:
+            - Check if it's captured by a current tool/control.
+            - Check all control panels.
+            - Send to current tool.
+        Also, set mouseover state correctly.
+        :param event: cv2.EVENT_...
+        :param xy: (x, y) tuple, coordinates within the window of the event.
+        :param view: BoardView object (which includes the window that the event was in)
+        """
+        if self._element_with_mouse is not None:
+            rv = self._element_with_mouse.mouse_event(event, xy, view)
+            if rv == MouseReturnStates.released:
+                self._element_with_mouse = None
+        else:
+
+            
+            for control in self._controls:
+                # Controls check if the mouse is in their bbox.
+                rv = control.mouse_event(event,  xy, view)
+                if rv == MouseReturnStates.captured:
+                    self._element_with_mouse = control
+                    return
+        current_tool = self._board.get_current_tool()
+        rv = current_tool.mouse_event(event, xy, view)
+        if rv == MouseReturnStates.captured:
+            self._element_with_mouse = current_tool
+
+
+
+class UIManager(UIElement, MouseEventManager, ABC):
     """
     Base class for objects that manage multiple UIElements of the same type.
     UIManagers have no visible respresentation, only their elements.
     """
     def __init__(self,  board, name, bbox, visible=True):
-        super().__init__(name, bbox, visible, pinned = False)
+        super().__init__(name, bbox, visible)
         self._elements = []
         self._board=board
-        self._init_elements()
 
-    @abstractmethod
-    def _init_elements(self):
+    def add_element(self, element):
         """
-        Initialize whatever UIElements this class manages.
+        :param element: UIElement object
         """
-        pass
+        self._elements.append(element)
+
 
     def render(self, img):
         """
@@ -118,38 +161,3 @@ class UIManager(UIElement, ABC):
         for element in self._elements:
             element.render(img)
 
-
-
-class UIWindow(UIElement):
-    """
-    Base class for windows.
-    """
-
-    def __init__(self, board, window_name, window_size, visible=True,
-                  win_params=cv2.WINDOW_NORMAL, bkg_color_n = 'off_white'):
-        self._color_v = COLORS_BGR[bkg_color_n]
-        self._frame = None  # current frame, need to redraw if None.
-        self._blank = (np.zeros((window_size[1], window_size[0], 3))+ self._color_v).astype(dtype=np.uint8) 
-        self._window_size = window_size
-        self._win_params = win_params
-        bbox = {'x': (0, window_size[0]), 'y': (0, window_size[1])}
-        self._board=board
-
-        super().__init__(window_name, bbox, visible, pinned=False)
-        self._init_win()
-
-    def _init_win(self):
-        
-        cv2.namedWindow(self.name, self._win_params)
-        cv2.resizeWindow(self.name, self._bbox['x'][1], self._bbox['y'][1])
-        cv2.setMouseCallback(self.name, self.mouse_event)
-
-    
-    def refresh(self):
-        frame = self._blank.copy()
-        self.render(frame)
-        cv2.imshow(self.name, self._frame)
-
-    def render(self, img):
-        pass
-    

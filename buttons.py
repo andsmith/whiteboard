@@ -15,7 +15,7 @@ class Button(Control):
     A button that can be moused over & clicked.  Clicks can trigger callbacks and/or change state.
     """
 
-    def __init__(self, board, name, bbox, states=(False, True), callbacks=(), action_mouseup=True, pinned=False, show_bbox=True):
+    def __init__(self, board, name, bbox, states=(False, True), callbacks=(), action_mouseup=True, show_bbox=True):
         """
         #TODO: Fix callback semantics for radio buttons (on state change, not on activate only?)
         :param states: list of states to cycle through (add a callback if this needs changing)
@@ -28,20 +28,17 @@ class Button(Control):
                     [callback(self, new_state, old_state) for callback in self.callbacks]
 
         :param action_mouseup: if True, the button changes state on mouseup, else on mousedown.
-        :param pinned: if True, the button moves with the board, else it is fixed WRT the window.
         """
-        super().__init__(board, name, bbox, True, pinned)
+        super().__init__(board, name, bbox, True)
         logging.info("Created Button %s" % name)
         self._states = states
         self.state = states[0]
-        self.moused_over = False
-        self.callbacks = list(callbacks)
-        self.action_mouseup = action_mouseup
+        self._callbacks = list(callbacks)
+        self._action_mouseup = action_mouseup
         self._mouseover_color_v = COLORS_BGR[COLOR_BUTTONS['mouseover_color']]
         self._selected_color_v = COLORS_BGR[COLOR_BUTTONS['selected_color']]
         self._unselected_color_v = None # COLORS_BGR[COLOR_BUTTONS['unselected_color']]
         self._text_color_v = COLORS_BGR[BOARD_LAYOUT['obj_color']]
-        
         self._show_bbox = show_bbox
 
     def _set_geom(self):
@@ -53,30 +50,25 @@ class Button(Control):
         """
         old_state = self.state
         self.state = self._states[(self._states.index(self.state) + 1) % len(self._states)]
-        for callback in self.callbacks:
+        for callback in self._callbacks:
             callback(self, self.state, old_state)
 
-    def mouse_event(self, event, x, y, flags, param):
-        if self.in_bbox((x, y)):
-            self.moused_over = True
-            if event == cv2.EVENT_LBUTTONDOWN:
-                if not self.action_mouseup:
-                    self._activate()
-                    return self._release_mouse()
-                return self._capture_mouse()
-            elif event == cv2.EVENT_LBUTTONUP:
-                if not self._has_mouse:
-                    return MouseReturnStates.unused
-                if self.action_mouseup:
-                    self._activate()
-                return self._release_mouse()
-            return MouseReturnStates.captured if self._has_mouse else MouseReturnStates.released
-        else:
-            self.moused_over = False
-            if self._has_mouse and event == cv2.EVENT_LBUTTONUP:
-                return self._release_mouse()
-            return MouseReturnStates.captured if self._has_mouse else MouseReturnStates.unused
-        
+    def mouse_down(self, xy, window_name):
+        if not self._action_mouseup:
+            self._activate()
+            return self._release_mouse()
+        return self._capture_mouse()
+    
+
+    def mouse_up(self, xy, window_name):
+        if self._action_mouseup and self.in_bbox(xy):
+             self._activate()
+        return self._release_mouse()     
+
+    def mouse_move(self, xy, window_name):
+        return MouseReturnStates.captured            
+
+
     def _draw_bbox(self, img, color_v,thickness=1):
         p1 = (self._bbox['x'][0], self._bbox['y'][0])
         p2 = (self._bbox['x'][1], self._bbox['y'][1])
@@ -126,12 +118,12 @@ class CircleButton(Button, ABC):
     Round button w/an outine indicating mouse state and something drawn in the middle.
     """
 
-    def __init__(self, board, name, bbox, callbacks=(), action_mouseup=True, pinned=False, outline_frac=None):
+    def __init__(self, board, name, bbox, callbacks=(), action_mouseup=True,  outline_frac=None):
         """
         :param outline_frac: fraction of the button radius (half side-length of inscribed square) defining the radius of the outine.
         """
         self._outline_frac = outline_frac if outline_frac is not None else  TOOL_BUTTONS['outline_frac']
-        super().__init__(board, name, bbox, callbacks=callbacks, action_mouseup=action_mouseup, pinned=pinned,show_bbox=False)
+        super().__init__(board, name, bbox, callbacks=callbacks, action_mouseup=action_mouseup, show_bbox=False)
         self._set_geom()
 
 
@@ -167,13 +159,13 @@ class ColorButton(CircleButton):
     A button representing a color the user can select.
     """
 
-    def __init__(self, board, name, bbox, color_n, pinned=False, circle_frac = None):
+    def __init__(self, board, name, bbox, color_n,  circle_frac = None):
         self._circle_frac = circle_frac if circle_frac is not None else COLOR_BUTTONS['circle_frac']
         self._color_n = color_n        
         self._color_v = COLORS_BGR[color_n]
 
         super().__init__(board, name, bbox, action_mouseup=False,
-                         callbacks=(self._change_color,), pinned=pinned, outline_frac=COLOR_BUTTONS['outline_frac'])
+                         callbacks=(self._change_color,),  outline_frac=COLOR_BUTTONS['outline_frac'])
 
     def _set_geom(self):
         super()._set_geom()
@@ -195,13 +187,13 @@ class ToolButton(CircleButton):
     A button representing a tool the user can select.
     """
 
-    def __init__(self, board, name, bbox, pinned=False, **kwargs):
+    def __init__(self, board, name, bbox,  **kwargs):
         if name not in BUTTON_ARTISTS:
             raise ValueError("Invalid tool name, no artist: %s" % name)
         self._artist = BUTTON_ARTISTS[name](board, bbox)
 
         super().__init__(board, name, bbox, action_mouseup=False,
-                         callbacks=(self._change_tool,), pinned=pinned, **kwargs)
+                         callbacks=(self._change_tool,), **kwargs)
         
     def move_to(self, xy, new_bbox=None):
         # move the button and the artist

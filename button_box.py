@@ -13,7 +13,7 @@ class ButtonBox(Control):
     """
 
     def __init__(self, board, name, bbox, button_grid, exclusive=False,
-                 exclusive_init=None, visible=True, pinned=True):
+                 exclusive_init=None, visible=True):
         """
         (ignores button's individual bboxes, aranges according to bbox & button_grid)
         :param exclusive: if True, only one button can be true at a time.
@@ -26,7 +26,7 @@ class ButtonBox(Control):
         :param button_grid: list of lists of Button objects (can be None), 
             to be displayed in that arangement, in the bbox.
         """
-        super().__init__(board, name, bbox, visible, pinned)
+        super().__init__(board, name, bbox, visible)
         self._exclusive = exclusive
         self._button_grid = button_grid
         self.buttons = []  # flattened list of buttons
@@ -39,12 +39,14 @@ class ButtonBox(Control):
         logging.info("Created ButtonBox %s (Exclusive=%s)" % (name, exclusive))
 
     def _set_geom(self):
+        # Determine grid layout
         x_min, x_max = self._bbox['x']
         y_min, y_max = self._bbox['y']
         n_rows = len(self._button_grid)
         n_cols = max(len(row) for row in self._button_grid)
         w = (x_max - x_min) // n_cols
         h = (y_max - y_min) // n_rows
+        # move buttons:
         for i, row in enumerate(self._button_grid):
             for j, button in enumerate(row):
                 if button is not None:
@@ -62,9 +64,9 @@ class ButtonBox(Control):
                 if set(button.get_states()) != set((True, False)):
                     raise ValueError("Radio Buttons must have states=(true,false).")
                 # add callback & set flags to enforce radio-button semantics
-                button.callbacks.append(self._radio_click_callback)
-                button.exclusive = True
-                button.action_mouseup = False
+                button._callbacks.append(self._radio_click_callback)
+                button._exclusive = True
+                button._action_mouseup = False
 
                 # set the correct initial state
                 if button is init_set_state:
@@ -95,7 +97,7 @@ class ButtonBox(Control):
 
     def move_to(self, xy, new_bbox=None):
         super().move_to(xy, new_bbox)
-        self._init_geom()
+        self._set_geom()
 
     def mouse_event(self, event, x, y, flags, param):
         """
