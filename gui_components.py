@@ -19,6 +19,7 @@ RENDER_ORDER = ['vectors_m', 'controls', 'tools']
 class Renderable(ABC):
     """
     Something that can draw in a bounding box within an image.
+    subclasses: Control, IconArtist, Vector
     """
 
     def __init__(self, name, bbox):
@@ -54,62 +55,3 @@ class MouseReturnStates(IntEnum):
     unused = 0  # control/tool did not use the event.
     captured = 1  # control used the event and will use all future events until releasing.
     released = 2  # control used the event but is done using every event.
-
-class MouseManager(ABC):
-    """
-    Base class for containing multiple Interactable objects, receiving CV2 mouse events, 
-    Deciding which object gets the event, etc.
-    """
-
-    def __init__(self,   bbox, visible=True):
-        self._bbox = bbox
-        self._visible = visible
-        self._interactables = self._get_interactables()
-
-        self._element_with_mouse = None
-        self._cur_xy = None
-        self._click_xy = None
-        self._moused_over_element = None
-
-    def mouse_event(self, event, xy, view):
-        """
-        Mouse event in the control window:
-            - Check if it's captured by a current tool/control.
-            - Check all control panels.
-            - Send to current tool.
-        Also, set mouseover state correctly.
-        :param event: cv2.EVENT_...
-        :param xy: (x, y) tuple, coordinates within the window of the event.
-        :param view: BoardView object (which includes the window that the event was in)
-        """
-        if self._element_with_mouse is not None:
-            rv = self._element_with_mouse.mouse_event(event, xy, view)
-            if rv == MouseReturnStates.released:
-                self._element_with_mouse = None
-        else:
-
-            for element in self._controls:
-                # Controls check if the mouse is in their bbox.
-                rv = control.mouse_event(event,  xy, view)
-                if rv == MouseReturnStates.captured:
-                    self._element_with_mouse = control
-                    return
-        current_tool = self._board.get_current_tool()
-        rv = current_tool.mouse_event(event, xy, view)
-        if rv == MouseReturnStates.captured:
-            self._element_with_mouse = current_tool
-
-    def add_element(self, element):
-        """
-        :param element: UIElement object
-        """
-        self._elements.append(element)
-
-    def render(self, img):
-        """
-        Render all UIElements that should be visible.
-        """
-        if not self._visible:
-            return
-        for element in self._elements:
-            element.render(img)

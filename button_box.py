@@ -2,7 +2,7 @@
 import numpy as np
 import cv2
 from util import in_bbox
-from gui_components import UIElement, MouseReturnStates
+from gui_components import MouseReturnStates
 from controls import Control
 import logging
 
@@ -31,11 +31,9 @@ class ButtonBox(Control):
         self._button_grid = button_grid
         self.buttons = []  # flattened list of buttons
         self._down_ind = None
-
+        self._over_ind = None
         self._set_geom()
-
         self._init_semantics(exclusive_init)
-
         logging.info("Created ButtonBox %s (Exclusive=%s)" % (name, exclusive))
 
     def _set_geom(self):
@@ -54,6 +52,12 @@ class ButtonBox(Control):
                                                      'y': (y_min + i * h, y_min + (i + 1) * h)})
                     self.buttons.append(button)
 
+    def _find_button(self, xy):
+        for i, button in enumerate(self.buttons):
+            if button.in_bbox(xy):
+                return i
+        return None
+
     def _init_semantics(self, init_on_button):
         if self._exclusive:
 
@@ -63,6 +67,7 @@ class ButtonBox(Control):
                 # check all buttons are true/false:
                 if set(button.get_states()) != set((True, False)):
                     raise ValueError("Radio Buttons must have states=(true,false).")
+
                 # add callback & set flags to enforce radio-button semantics
                 button._callbacks.append(self._radio_click_callback)
                 button._exclusive = True
@@ -95,31 +100,51 @@ class ButtonBox(Control):
         else:
             button.set_state(True)
 
-    def move_to(self, xy, new_bbox=None):
-        super().move_to(xy, new_bbox)
-        self._set_geom()
+    def _update_mouseovers(self, xy):
+        # Mouse moved, see if we're over a (new) button.
+        new_over_ind = self._find_button(xy)
+        if new_over_ind is not None:
+            if self._over_ind is not None:
+                self.buttons[self._over_ind].mouse_out(xy, self.name)
+            self.buttons[new_over_ind].mouse_over(xy, self.name)
+            self._over_ind = new_over_ind
+        elif self._over_ind is not None:
+            self.buttons[self._over_ind].mouse_out(xy, self.name)
+            self._over_ind = None
 
-    def mouse_event(self, event, x, y, flags, param):
+    def mouse_down(self, xy):
         """
-        Send all buttons the event so they can change their pressed/moused-over state.
-        Remember which button captures the mouse.
+        Clicked somwehere in our bbox.
         """
-        capture_state = MouseReturnStates.unused
-        if self._down_ind is not None:  # a button is being pushed, send the signal
-            rv = self.buttons[self._down_ind].mouse_event(event, x, y, flags, param)
-            if rv == MouseReturnStates.released:
-                self._down_ind = None
-                return MouseReturnStates.released
-        else:
-            for i, button in enumerate(self.buttons):
-                rv = button.mouse_event(event, x, y, flags, param)
-                if rv == MouseReturnStates.captured:
-                    self._down_ind = i
-                    return MouseReturnStates.captured
-                elif rv == MouseReturnStates.released:
-                    capture_state = MouseReturnStates.released
-        return capture_state
+        button = self._find_button(xy)
+        if button is not None:
+            rv = self.buttons[button].mouse_down(xy)
+            if rv == MouseReturnStates.captured:
+                self._down_ind = button
+            return rv
+        return MouseReturnStates.unused
 
-    def render(self, img):
-        for button in self.buttons:
-            button.render(img)
+    def mouse_up(self, xy):
+        """
+        Released mouse button.
+        """
+        if self._down_ind is not None:
+            rv = self.buttons[self._down_ind].mouse_up(xy)
+            self._down_ind = None
+            return rv
+        return MouseReturnStates.unused
+
+    def mouse_move(self, xy):
+        """
+        Mouse moved.
+        """
+        self._update_mouseovers(xy)
+        if self._down_ind is not None:
+            return self.buttons[self._down_ind].mouse_move(xy)
+        return MouseReturnStates.unused
+
+    def mouse_out(self, xy):
+        pass
+
+    def mouse_over(self, xy):
+        pass

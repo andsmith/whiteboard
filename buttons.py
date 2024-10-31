@@ -53,19 +53,19 @@ class Button(Control):
         for callback in self._callbacks:
             callback(self, self.state, old_state)
 
-    def mouse_down(self, xy, window_name):
+    def mouse_down(self, xy):
         if not self._action_mouseup:
             self._activate()
             return self._release_mouse()
         return self._capture_mouse()
     
 
-    def mouse_up(self, xy, window_name):
+    def mouse_up(self, xy):
         if self._action_mouseup and self.in_bbox(xy):
              self._activate()
         return self._release_mouse()     
 
-    def mouse_move(self, xy, window_name):
+    def mouse_move(self, xy):
         return MouseReturnStates.captured            
 
 

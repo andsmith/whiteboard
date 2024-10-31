@@ -178,14 +178,14 @@ class Slider(Control):
             max_height = max(max_height, height)
         return max_width, max_height
     
-    def mouse_down(self, xy, window_name):
+    def mouse_down(self, xy):
         self._cur_value_rel = self._click_to_rel_value(xy)
         return self._capture_mouse()
     
-    def mouse_up(self, xy, window_name):
+    def mouse_up(self, xy):
         return self._release_mouse()
     
-    def mouse_move(self, xy, window_name):
+    def mouse_move(self, xy):
         self._cur_value_rel = self._click_to_rel_value(xy)
         return MouseReturnStates.captured
     

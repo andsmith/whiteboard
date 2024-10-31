@@ -142,6 +142,8 @@ class ToolManager(object):
         self._init_tools()
         self.switch_tool(init_tool_name)
 
+        self.tool = 
+
     def commit_vector(self, vector):
         self._vectors.add_vector(vector)
         

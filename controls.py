@@ -31,7 +31,7 @@ class Control(Renderable):
         self._set_geom()
 
     @abstractmethod
-    def mouse_down(self, xy,  window_name):
+    def mouse_down(self, xy):
         """
         Control doesn't have mouse, user clicked in self._bbox, control captures the mouse.
         :returns: MouseReturnStates
@@ -39,7 +39,7 @@ class Control(Renderable):
         pass
 
     @abstractmethod
-    def mouse_up(self, xy, window_name):
+    def mouse_up(self, xy):
         """
         Control has mouse, user released mouse anywhere in the window.
         :returns: MouseReturnStates
@@ -47,21 +47,23 @@ class Control(Renderable):
         pass
 
     @abstractmethod
-    def mouse_move(self, xy,  window_name):
+    def mouse_move(self, xy):
         """
         Control has mouse, user released mouse anywhere in the window.
         :returns: MouseReturnStates
         """
         pass
 
-    def mouse_over(self, window_name):
+    @abstractmethod
+    def mouse_over(self, xy):
         """
         Called when user moved the mouse into the control bbox.
         Control may or may not have the mouse.
         """
         pass
 
-    def mouse_out(self, window_name):
+    @abstractmethod
+    def mouse_out(self, xy):
         """
         Called when user moved the mouse out of the control bbox.
         Control may or may not have the mouse.
@@ -88,9 +90,6 @@ class Control(Renderable):
     def render(self, img, show_bbox=True):
         # Draw the control on the image
         pass
-
-    def set_mouseover(self, moused_over):
-        self._moused_over = moused_over
 
     def in_bbox(self, xy_px):
         if self._bbox is None:
