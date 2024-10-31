@@ -16,13 +16,22 @@ class Tool(ABC):
         self._active_vec = None  # in-progress vector object
 
     @abstractmethod
-    def mouse_event(self, event, x, y, flags, param):
+    def mouse_down(self, xy, window):
         """
-        Tool is being used, create/modify a vector object, or send it to the 
-        board if it's finished.
+        Starting to use the tool.
+        :param xy: (x, y) position of mouse in pixels
+        :param window: UIWindow object mouse clicked in.
         """
         pass
 
+    @abstractmethod
+    def mouse_move(self, xy, window):
+        pass
+
+    @abstractmethod
+    def mouse_up(self, xy, window):
+        pass
+    
     def render(self, img):
         # TODO:  Render cursors here?
         if self._active_vec is not None:
@@ -30,95 +39,62 @@ class Tool(ABC):
 
 
 class Pencil(Tool):
-    # Freehand drawing tool.
+    def mouse_down(self, xy, window):
+        self._active_vec = PencilVec(*self._manger.get_color_thickness())
+        self._active_vec.add_point(xy, window.view)
 
-    def mouse_event(self, event, x, y, flags, param):
-        click_pos = np.array([x, y])
-        if event == cv2.EVENT_LBUTTONDOWN:
-            self._active_vec = PencilVec(*self._manger.get_color_thickness())
-            self._active_vec.add_point(click_pos)
-        elif event == cv2.EVENT_MOUSEMOVE:
-            if self._active_vec is not None:
-                self._active_vec.add_point(click_pos)
-        elif event == cv2.EVENT_LBUTTONUP:
-            if self._active_vec is not None:
-                self._active_vec.finalize()
-                self._manager.commit_vector(self._active_vec)
-                self._active_vec = None
+    def mouse_move(self, xy,window):
+        if self._active_vec is not None:
+            self._active_vec.add_point(xy,window.view)
+
+    def mouse_up(self, xy,window):
+        if self._active_vec is not None:
+            self._active_vec.finalize()
+            self._manager.commit_vector(self._active_vec)
+            self._active_vec = None
 
 
-class Line(Tool):
-    # Line drawing tool.
+class Line(Pencil):
+    def mouse_down(self, xy, window):
+        self._active_vec = LineVec(*self._manger.get_color_thickness())
+        self._active_vec.add_point(xy, window.view)
 
-    def mouse_event(self, event, x, y, flags, param):
-        click_pos = np.array([x, y])
-        if event == cv2.EVENT_LBUTTONDOWN:
-            self._active_vec = LineVec(*self._manger.get_color_thickness())
-            self._active_vec.add_point(click_pos)
-        elif event == cv2.EVENT_MOUSEMOVE:
-            if self._active_vec is not None:
-                self._active_vec.add_point(click_pos)
-        elif event == cv2.EVENT_LBUTTONUP:
-            if self._active_vec is not None:
-                self._active_vec.finalize()
-                self._manager.commit_vector(self._active_vec)
-                self._active_vec = None
+    
+
+class Rectangle(Pencil):
+    def mouse_down(self, xy, window):
+        self._active_vec = RectangleVec(*self._manger.get_color_thickness())
+        self._active_vec.add_point(xy, window.view)
 
 
-class Rectangle(Tool):
-    # Rectangle drawing tool.
 
-    def mouse_event(self, event, x, y, flags, param):
-        click_pos = np.array([x, y])
-        if event == cv2.EVENT_LBUTTONDOWN:
-            self._active_vec = RectangleVec(*self._manger.get_color_thickness())
-            self._active_vec.add_point(click_pos)
+class Circle(Pencil):
+    def mouse_down(self, xy, window):
+        self._active_vec = CircleVec(*self._manger.get_color_thickness())
+        self._active_vec.add_point(xy, window.view)
 
-        elif event == cv2.EVENT_MOUSEMOVE:
-            if self._active_vec is not None:
-                self._active_vec.add_point(click_pos)
-        elif event == cv2.EVENT_LBUTTONUP:
-            if self._active_vec is not None:
-                self._active_vec.finalize()
-                self._manager.commit_vector(self._active_vec)
-                self._active_vec = None
+class Pan(Tool):
 
+    def __init__(self, tool_manager):
+        super().__init__(tool_manager)
+        self._panning_window = None
+        
+    def mouse_down(self, xy, window):
+        self._panning_window = window
+        window.start_pan(xy)
 
-class Circle(Tool):
-    # Circle drawing tool.
+    def mouse_move(self, xy, window):
+        if window != self._panning_window:
+            raise Exception("Pan tool is being used in two windows at once.")
+        window.pan(xy)
 
-    def mouse_event(self, event, x, y, flags, param):
-        click_pos = np.array([x, y])
-        if event == cv2.EVENT_LBUTTONDOWN:
-            self._active_vec = CircleVec(*self._manger.get_color_thickness())
-            self._active_vec.add_point(click_pos)
-        elif event == cv2.EVENT_MOUSEMOVE:
-            if self._active_vec is not None:
-                self._active_vec.add_point(click_pos)
-        elif event == cv2.EVENT_LBUTTONUP:
-            if self._active_vec is not None:
-                self._active_vec.finalize()
-                self._manager.commit_vector(self._active_vec)
-                self._active_vec = None 
+    def mouse_up(self, xy, window):
+        if window != self._panning_window:
+            raise Exception("Pan tool is being used in two windows at once.")
+        window.end_pan()
+        
 
 """
-class Pan(Tool):
-    # Pan tool (for board window)
-    def __init__(self, board):
-        super().__init__(board)
-    def mouse_event(self, event, x, y, flags, param):
-        click_pos = np.array([x, y])
-        if event == cv2.EVENT_LBUTTONDOWN:
-            self._board.start_pan(click_pos)
-        elif event == cv2.EVENT_MOUSEMOVE:
-            if self._m_down_pos is not None:
-                self._board.pan(click_pos)
-        elif event == cv2.EVENT_LBUTTONUP:
-            self._board.end_pan()
-            self._m_down_pos = None
-
-
-            
 
 class Select(Tool):
     # Defined by bbox, vectors are selected 
@@ -130,8 +106,8 @@ class ToolManager(object):
     _TOOLS = {'pencil': Pencil,
               'line': Line,
               'rectangle': Rectangle,
-              'circle': Circle,}
-              #'pan': Pan,
+              'circle': Circle,
+              'pan': Pan,}
               #'select': Select
 
     def __init__(self, vector_manager, init_tool_name = 'pencil', init_color = 'black', init_thickness = 2):
@@ -142,14 +118,13 @@ class ToolManager(object):
         self._init_tools()
         self.switch_tool(init_tool_name)
 
-        self.tool = 
-
     def commit_vector(self, vector):
+        # send to server...
         self._vectors.add_vector(vector)
         
     def switch_tool(self, new_tool_name):
         try:
-            self._current_tool_ind = self._tools.index(self._tools[new_tool_name])
+            self._current_tool_ind = self._tools[new_tool_name]
         except KeyError:
             raise ValueError(f'Invalid tool name (did you add to self._tools in _init_elements?): {new_tool_name}')
         logging.info(f"Switched to tool: {new_tool_name}")

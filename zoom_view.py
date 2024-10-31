@@ -7,7 +7,6 @@ outside pans.)
 import numpy as np
 from controls import Control
 from layout import ZOOM_BOX, COLORS_BGR
-from util import corners_to_bbox, move_bbox_to
 from gui_components import MouseReturnStates
 import cv2
 
@@ -47,7 +46,7 @@ class ZoomViewControl(Control):
     
     def mouse_over(self, xy):
         pass
-    
+
     def mouse_out(self):
         pass
 

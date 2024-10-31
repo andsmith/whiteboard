@@ -34,6 +34,7 @@ class UIWindow(ABC):
         self._color_v = COLORS_BGR[bkg_color_n]
         self._blank = (np.zeros((window_size[1], window_size[0], 3)) + self._color_v).astype(dtype=np.uint8)
         self._pan_start_xy = None
+        self._old_view = None
 
         # for tracking & dispatching mouse signals:
         self._control_with_mouse = None  # index
@@ -43,10 +44,22 @@ class UIWindow(ABC):
         self._control_moused_over = None
 
         # controls, state & managers:
-        self._view = board_view
+        self.view = board_view
         self.vectors = vector_manager
         self.tools = tool_manager
         self._controls = []
+
+    def start_pan(self, xy):
+        self._pan_start_xy = np.array(xy)
+        self._old_view = self._view
+
+    def end_pan(self):
+        self._pan_start_xy = None
+        self._old_view = None
+
+    def pan_to(self, xy):
+        rel_xy = np.array(xy) - self._pan_start_xy
+        self._view = self._old_view.pan(rel_xy)
 
     def add_control(self, control):
         self._controls.append(control)
@@ -66,46 +79,61 @@ class UIWindow(ABC):
     def _update_mouseover(self, xy):
         for i, control in enumerate(self._controls):
             if control.in_bbox(xy):
-                control.mouseover(xy, self._view)
+                control.mouse_over(xy, self._view)
                 self._control_moused_over = i
                 return
         if self._control_moused_over is not None:
-            self._controls[self._control_moused_over].mouseout(self._view)
+            self._controls[self._control_moused_over].mouse_out(self._view)
             self._control_moused_over = None
 
     def cv2_mouse_event(self, event, x, y, flags, param):
+        """
+        Figure out which tool/control has the mouse (if any), or which should get it, 
+        then call the appropriate mouse_<event> method
+        """
         if event == cv2.EVENT_MOUSEMOVE:
             self._update_mouseover((x, y))
             self._cur_xy = (x, y)
+            if self._control_with_mouse is not None:
+                rv = self._controls[self._control_with_mouse].mouse_move((x, y))
+                if rv == MouseReturnStates.released:
+                    self._control_with_mouse = None
+                    
+            if self._tool_has_mouse:
+                rv = self.tools.mouse_move((x, y))
+                if rv == MouseReturnStates.released:
+                    self._tool_has_mouse = False
+                    
+                
+        elif event == cv2.EVENT_LBUTTONDOWN:
+            if self._control_with_mouse is not None or self._tool_has_mouse:
+                raise Exception("control already has mouse")
+            for i, control in enumerate(self._controls):
+                if control.in_bbox((x, y)):
+                    rv = control.mouse_down((x, y))
+                    if rv == MouseReturnStates.captured:
+                        self._control_with_mouse = i
+                    if rv in [MouseReturnStates.captured, MouseReturnStates.released]:
+                        return
+                    
+            rv = self.tools.mouse_down((x, y))
+            if rv == MouseReturnStates.captured:
+                self._tool_has_mouse = True
             
-        if self._tool_has_mouse:
-            rv = self.tools.mouse_event(event, (x, y), self._view)
-            if rv == MouseReturnStates.released:
-                self._tool_has_mouse = False
-            elif rv == MouseReturnStates.unused:
-                raise Exception("Tool didn't use the mouse signal after capturing it.")
-            return
-
-        if self._control_with_mouse is not None:
-            rv = self._controls[self._control_with_mouse].mouse_event(event, (x, y), self._view)
-            if rv == MouseReturnStates.released:
-                self._control_with_mouse = None
-            elif rv == MouseReturnStates.unused:
-                raise Exception("Control didn't use the mouse signal after capturing it.")
-            return  # don't keep processing
-
-        # if not, check all controls bboxes and send to the first that uses it.
-        for i, control in enumerate(self._controls):
-            if control.in_bbox((x, y)):
-                rv = control.mouse_event(event, (x, y), self._view)
-                if rv == MouseReturnStates.captured:
-                    self._control_with_mouse = i
-                    return
-        # if no control used it, send to the tool.
-        rv = self.tools.mouse_event(event, (x, y), self._view)
-        if rv == MouseReturnStates.captured:
-            self._tool_has_mouse = True
-
+        elif event == cv2.EVENT_LBUTTONUP:
+            if self._control_with_mouse is not None:
+                rv = self._controls[self._control_with_mouse].mouse_up((x, y))
+                if rv == MouseReturnStates.released:
+                    self._control_with_mouse = None
+                
+            elif self._tool_has_mouse:
+                rv = self.tools.mouse_up((x, y))
+                if rv == MouseReturnStates.released:
+                    self._tool_has_mouse = False
+                return
+                    
+                    
+            
     def close(self):
         cv2.destroyWindow(self._name)
         
