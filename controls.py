@@ -4,40 +4,37 @@ import cv2
 import json
 from abc import ABC, abstractmethod
 from util import in_bbox
-from gui_components import UIElement, UIManager
+from gui_components import Renderable, MouseReturnStates
 
 
-class Control(UIElement):
+class Control(Renderable):
     """
     Abstract class for a thing you can interact with on the window that isn't the board.
+
+     MouseManagers get cv2 mouse events, decide which Control & method to call.
+
+    Interactables never need to check their own bounding box (MouseManagers do that).
+
     """
 
-    def __init__(self, board, name, bbox, visible=True):
+    def __init__(self, window, name, bbox, visible=True):
         """
-        :param board: a Board object
+        :param window: a UIWindow object
         :param bbox: {'x': (x_min, x_max), 'y': (y_min, y_max)}
-        :param visible: bool, whether the control is visible initially
+        :param visible: bool, whether the control is visible initially        
         """
-        super().__init__(name, bbox, visible)
-        self._board = board
+        super().__init__(name, bbox)
+        self.visible = visible
+        self._has_mouse = False
+        self._window = window
         self._moused_over = False
-        # self._held = self._has_mouse
-        self._active_window_name = None
-
-    @abstractmethod
-    def _set_geom(self):
-        # called after move_to (may be useful in sublcasses' __init__ as well)
-        pass
-
-    @abstractmethod
-    def render(self, img, show_bbox=True):
-        # Draw the control on the image
-        pass
+        self._set_geom()
 
     @abstractmethod
     def mouse_down(self, xy,  window_name):
         """
         Control doesn't have mouse, user clicked in self._bbox, control captures the mouse.
+        :returns: MouseReturnStates
         """
         pass
 
@@ -45,6 +42,15 @@ class Control(UIElement):
     def mouse_up(self, xy, window_name):
         """
         Control has mouse, user released mouse anywhere in the window.
+        :returns: MouseReturnStates
+        """
+        pass
+
+    @abstractmethod
+    def mouse_move(self, xy,  window_name):
+        """
+        Control has mouse, user released mouse anywhere in the window.
+        :returns: MouseReturnStates
         """
         pass
 
@@ -57,20 +63,30 @@ class Control(UIElement):
 
     def mouse_out(self, window_name):
         """
-        Called whne user moved the mouse out of the control bbox.
+        Called when user moved the mouse out of the control bbox.
         Control may or may not have the mouse.
         """
         pass
 
+    def _release_mouse(self):
+        # convenience function for mouse_event implementations
+        # useful for UIElement types that take mouse signals from outisde their BBOX by "capturing" the mouse
+        self._has_mouse = False
+        return MouseReturnStates.released
+
+    def _capture_mouse(self):
+        # convenience function for mouse_event implementations
+        self._has_mouse = True
+        return MouseReturnStates.captured
+
     @abstractmethod
-    def mouse_move(self, xy,  window_name):
-        """
-        Control has mouse, user released mouse anywhere in the window.
-        """
+    def _set_geom(self):
+        # called in __init__ and  move_to 
         pass
 
-    def mouse_event(self, event, x, y, flags, param):
-        # Controls use the above three methods
+    @abstractmethod
+    def render(self, img, show_bbox=True):
+        # Draw the control on the image
         pass
 
     def set_mouseover(self, moused_over):
@@ -88,19 +104,3 @@ class Control(UIElement):
         else:
             self._bbox = new_bbox
         self._set_geom()
-
-
-class ControlManager(UIManager):
-    """
-    Manages all UI controls (buttons, sliders, the ZoomWindow).
-
-    """
-
-    def __init__(self, board, controls):
-        super().__init__(board, 'Control Manager', None, visible=False)
-
-    def render(self, img):
-        for control in self._controls:
-            control.render(img)
-
-    def mouse_event(self, event, xy, win_name):

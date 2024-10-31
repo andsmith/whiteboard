@@ -1,7 +1,7 @@
 """
 Class to represent simple vector drawing shapes.
 """
-from gui_components import UIElement, GUIArtist
+from gui_components import Renderable
 import cv2
 
 import numpy as np
@@ -12,7 +12,7 @@ import json
 import time
 
 
-class Vector(GUIArtist, ABC):
+class Vector(Renderable, ABC):
     """
     Base class for vectors, all defined by a user input consisting of a sequence of points.
     Vectors represent some change to the board, e.g., line, circle, pencil stroke.

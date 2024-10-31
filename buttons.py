@@ -4,7 +4,7 @@ import cv2
 import json
 from abc import ABC, abstractmethod
 from util import in_bbox, get_circle_points, floats_to_fixed, PREC_BITS
-from gui_components import UIElement, MouseReturnStates
+from gui_components import MouseReturnStates
 from controls import Control
 import logging
 from layout import COLORS_BGR, COLOR_BUTTONS, BOARD_LAYOUT, TOOL_BUTTONS
@@ -15,7 +15,7 @@ class Button(Control):
     A button that can be moused over & clicked.  Clicks can trigger callbacks and/or change state.
     """
 
-    def __init__(self, board, name, bbox, states=(False, True), callbacks=(), action_mouseup=True, show_bbox=True):
+    def __init__(self, window, name, bbox, states=(False, True), callbacks=(), action_mouseup=True, show_bbox=True):
         """
         #TODO: Fix callback semantics for radio buttons (on state change, not on activate only?)
         :param states: list of states to cycle through (add a callback if this needs changing)
@@ -29,7 +29,7 @@ class Button(Control):
 
         :param action_mouseup: if True, the button changes state on mouseup, else on mousedown.
         """
-        super().__init__(board, name, bbox, True)
+        super().__init__(window, name, bbox, True)
         logging.info("Created Button %s" % name)
         self._states = states
         self.state = states[0]
@@ -118,12 +118,12 @@ class CircleButton(Button, ABC):
     Round button w/an outine indicating mouse state and something drawn in the middle.
     """
 
-    def __init__(self, board, name, bbox, callbacks=(), action_mouseup=True,  outline_frac=None):
+    def __init__(self, window, name, bbox, callbacks=(), action_mouseup=True,  outline_frac=None):
         """
         :param outline_frac: fraction of the button radius (half side-length of inscribed square) defining the radius of the outine.
         """
         self._outline_frac = outline_frac if outline_frac is not None else  TOOL_BUTTONS['outline_frac']
-        super().__init__(board, name, bbox, callbacks=callbacks, action_mouseup=action_mouseup, show_bbox=False)
+        super().__init__(window, name, bbox, callbacks=callbacks, action_mouseup=action_mouseup, show_bbox=False)
         self._set_geom()
 
 
@@ -159,12 +159,12 @@ class ColorButton(CircleButton):
     A button representing a color the user can select.
     """
 
-    def __init__(self, board, name, bbox, color_n,  circle_frac = None):
+    def __init__(self, window, name, bbox, color_n,  circle_frac = None):
         self._circle_frac = circle_frac if circle_frac is not None else COLOR_BUTTONS['circle_frac']
         self._color_n = color_n        
         self._color_v = COLORS_BGR[color_n]
 
-        super().__init__(board, name, bbox, action_mouseup=False,
+        super().__init__(window, name, bbox, action_mouseup=False,
                          callbacks=(self._change_color,),  outline_frac=COLOR_BUTTONS['outline_frac'])
 
     def _set_geom(self):
@@ -175,7 +175,7 @@ class ColorButton(CircleButton):
 
     def _change_color(self, button, new_state, old_state):
         if new_state:
-            self._board.tools.set_color(self._color_n)
+            self._window.tools.set_color_thickness(self._color_n, None)
 
     def _draw_icon(self, img):
         # draw color circle
@@ -202,7 +202,7 @@ class ToolButton(CircleButton):
 
     def _change_tool(self, button, new_state, old_state):
         if new_state:
-            self._board.tools.set_tool(self.name)
+            self._window.tools.set_tool(self.name)
 
     def _draw_icon(self, img):
         self._artist.render(img)

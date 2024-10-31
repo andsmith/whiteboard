@@ -3,12 +3,12 @@ from layout import BOARD_LAYOUT, COLORS_BGR, CONTROL_LAYOUT
 import logging
 import numpy as np
 from enum import IntEnum
-from gui_components import MouseReturnStates, UIElement
+from gui_components import MouseReturnStates
 from tools import Tool
 import cv2
 from util import unit_to_abs_bbox
 from abc import ABC, abstractmethod
-from controls import ControlBox, Toolbox, ColorBox
+# from controls import ControlBox, Toolbox, ColorBox
 from board_view import BoardView
 from slider import Slider
 from button_box import ButtonBox
@@ -21,26 +21,32 @@ class UIWindow(ABC):
     Base class for windows that have a view of the board.
     Windows get managers from the board, keep track of which has captured the mouse, where to send signals, etc.
     """
-    _MOUSE_SIGNAL_ORDER = ['controls', 'tools']
 
-    def __init__(self, board, name, title, window_size, visible=True,
+    def __init__(self, name, board_view, vector_manager, tool_manager, title, window_size, visible=True,
                  win_params=cv2.WINDOW_NORMAL, bkg_color_n='off_white'):
-        self._name = name
-        self._board = board
+        self._name = name  # i.e. 'control' or 'board'
         self._visible = visible
         self._color_v = COLORS_BGR[bkg_color_n]
         self._blank = (np.zeros((window_size[1], window_size[0], 3)) + self._color_v).astype(dtype=np.uint8)
         self._window_size = window_size
         self._win_params = win_params
         self._title = title
+        self._managers = self._make_managers()
+        self._captured_ind = None  # index of self._managers
+        self._view = board_view
+        self.vectors = vector_manager
+        self.tools = tool_manager
 
-        self._managers = {'tools': self._board.tools,
-                          'controls': self._board.controls}
 
-        self._captured = None  # key of self._managers
-        self._vector_m = self._board.vectors
-        self._init_win()
-        self._view = self._get_init_board_view()
+    @abstractmethod
+    def _make_managers(self):
+        """
+        Create the control and tool managers for this window.
+        """
+        pass
+
+    def get_win_name(self):
+        return self._name  # so cv2 knows which
 
     @abstractmethod
     def _get_init_board_view(self):
@@ -52,8 +58,8 @@ class UIWindow(ABC):
 
     def _init_win(self):
 
-        cv2.namedWindow(self.name, self._title)
-        cv2.resizeWindow(self.name, self._bbox['x'][1], self._bbox['y'][1])
+        cv2.namedWindow(self._name, self._title)
+        cv2.resizeWindow(self._name, self._bbox['x'][1], self._bbox['y'][1])
         cv2.setMouseCallback(self.name, self.cv2_mouse_event, param=self.name)
 
     def refresh(self):
@@ -105,14 +111,14 @@ class ControlWindow(UIWindow):
 
         self._init_controls()
 
-    def _init_controls(self):        
+    def _init_controls(self):
         # Color buttons
         color_name_grid = CONTROL_LAYOUT['color_box']['options']
         color_buttons = [[ColorButton(self._board, "CB: %s" % (color_name,), EMPTY_BBOX, color_name)
                           for color_name in row]
                          for row in color_name_grid]
         color_button_bbox = unit_to_abs_bbox(CONTROL_LAYOUT['color_box']['loc'], self._window_size)
-        color_control = ButtonBox(self._board, 'color_button_box',color_button_bbox, color_buttons, exclusive=True)
+        color_control = ButtonBox(self._board, 'color_button_box', color_button_bbox, color_buttons, exclusive=True)
 
         # Tool buttons
         tool_name_grid = CONTROL_LAYOUT['tool_box']['options']
@@ -124,7 +130,7 @@ class ControlWindow(UIWindow):
 
         # zoom slider
         zoom_slider_box = unit_to_abs_bbox(CONTROL_LAYOUT['zoom_slider']['loc'], self._window_size)
-        zoom_slider = Slider(self._board, zoom_slider_box, 'control_zoom_slider', 
+        zoom_slider = Slider(self._board, zoom_slider_box, 'control_zoom_slider',
                              orientation=CONTROL_LAYOUT['zoom_slider']['orientation'],
                              values=[-10, 10], init_pos=0.5)
 

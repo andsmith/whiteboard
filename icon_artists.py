@@ -1,4 +1,4 @@
-from gui_components import GUIArtist
+from gui_components import Renderable
 from layout import COLORS_BGR, BOARD_LAYOUT,DEFAULT_ICON_MARGIN_FRAC
 import logging
 import cv2
@@ -18,7 +18,7 @@ CTRL_PT_COLORS_BGR = {'outer': COLORS_BGR['black'],
 UNIT_SCRIBBLE_COORDS = load_scribble()
 
 
-class IconArtist(GUIArtist, ABC):
+class IconArtist(Renderable, ABC):
     """
     Draw a simple shape in a bounding box.
     """

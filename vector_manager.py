@@ -1,26 +1,22 @@
 import json
 from vectors import Vector, PencilVec, LineVec, CircleVec, RectangleVec
-from gui_components import UIManager
 import numpy as np
 from layout import EMPTY_BBOX
 import logging
 from util import in_bbox
-from abc import ABC, abstractmethod
 
 VECTORS = [PencilVec, LineVec, CircleVec, RectangleVec]
 
 
-class VectorManager(UIManager):
+class VectorManager(object):
     """
     Manages set of vectors on the board.
     """
 
-    def __init__(self, board, load_file=None):
-        self._board = board
+    def __init__(self, load_file=None):
         if load_file:
             self.load(load_file)
         self._deleted = []  # list of deleted vectors (current stored in self._elements)
-        super().__init__(board, 'Vector Manager', EMPTY_BBOX, visible=False)
         self._types = {cls.__name__: cls for cls in VECTORS}
 
     def _init_elements(self):
