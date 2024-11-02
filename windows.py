@@ -6,9 +6,6 @@ from enum import IntEnum
 from gui_components import MouseReturnStates
 from tools import Tool
 import cv2
-from util import unit_to_abs_bbox
-from abc import ABC, abstractmethod
-# from controls import ControlBox, Toolbox, ColorBox
 from board_view import BoardView
 from slider import Slider
 from button_box import ButtonBox
@@ -16,10 +13,10 @@ from buttons import Button, ColorButton, ToolButton
 from layout import COLORS_BGR, CONTROL_LAYOUT, EMPTY_BBOX
 
 
-class UIWindow(ABC):
+class UIWindow(object):
     """
-    Base class for windows that have a view of the board.
-    Windows get managers from the board, keep track of which has captured the mouse, where to send signals, etc.
+    All windows should instantiate this class.
+    Windows get managers from the board, keep track of which has captured the mouse, where to send mouse/keyboard signals, etc.
     """
 
     def __init__(self, name, board_view, vector_manager, tool_manager, title, window_size, visible=True,

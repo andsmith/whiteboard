@@ -63,8 +63,11 @@ CONTROL_LAYOUT = {
                               ['blue', 'yellow'],
                               ['purple', 'green']]},
 
+    # command box (undo/redo, clear, grid, connect, etc.) is 
+
+
     # zoom slider-bar, horizontal, accros bottom.
-    'zoom_slider': {'loc': {'x': [.05, .95],
+    'zoom_slider': {'loc': {'x': [.5, .95],
                             'y': [.85, .95],
                             'orientation': 'horizontal'}, },
 }
