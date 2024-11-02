@@ -92,9 +92,6 @@ class BoardView(object):
         bx_min, bx_max = self._board_bbox['x']
         by_min, by_max = self._board_bbox['y']
 
-        if self.win_name == 'control':
-            print(f"Rendering grid for {self.win_name} view: {self._origin}, {self._zoom}, {self.size}, {self._board_bbox}")
-
         def _draw_grid(spacing, color):
 
             x_min = int(np.floor(bx_min / spacing) * spacing)
@@ -113,8 +110,8 @@ class BoardView(object):
         _draw_grid(100, interp_colors(bkg_color_v, line_color_v, .4))
 
         # if (0, 0) is in view, plot a big dot.
-        if in_bbox(self._board_bbox, (0, 0)):
-            cv2.circle(img, self.pts_to_pixels((0, 0)).astype(np.int32), 10, line_color_v, -1)
+        #if in_bbox(self._board_bbox, (0, 0)):
+        #    cv2.circle(img, self.pts_to_pixels((0, 0)).astype(np.int32), 10, line_color_v, -1)
 
 
 def get_board_view(name, points, win_size, margin=0.05):
