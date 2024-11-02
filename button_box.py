@@ -5,6 +5,7 @@ from util import in_bbox
 from gui_components import MouseReturnStates
 from controls import Control
 import logging
+from layout import COLORS_BGR, BOARD_LAYOUT
 
 
 class ButtonBox(Control):
@@ -13,7 +14,7 @@ class ButtonBox(Control):
     """
 
     def __init__(self, window, name, bbox, button_grid, exclusive=False,
-                 exclusive_init=None, visible=True):
+                 exclusive_init=None, visible=True, show_bbox=False):
         """
         (ignores button's individual bboxes, aranges according to bbox & button_grid)
         :param exclusive: if True, only one button can be true at a time.
@@ -25,24 +26,29 @@ class ButtonBox(Control):
             otherwise, it is undefined.
         :param button_grid: list of lists of Button objects (can be None), 
             to be displayed in that arangement, in the bbox.
+        :param visible: bool, whether to render this control.
+        :param show_bbox: bool, whether to render the bbox.
         """
         self._exclusive = exclusive
         self._button_grid = button_grid
         self.buttons = []  # flattened list of buttons
         self._down_ind = None
         self._over_ind = None
+        self._draw_color_v = COLORS_BGR[BOARD_LAYOUT['obj_color']]
+
+        self._show_bbox = show_bbox
         super().__init__(window, name, bbox, visible)
         self._init_semantics(exclusive_init)
         logging.info("Created ButtonBox %s (Exclusive=%s)" % (name, exclusive))
 
-    def render(self, img, show_bbox=True):
+    def render(self, img):
         if self.visible:
             for button in self.buttons:
-                button.render(img, show_bbox)
-            if show_bbox:
+                button.render(img)
+            if self._show_bbox:
                 cv2.rectangle(img, (self._bbox['x'][0], self._bbox['y'][0]),
                               (self._bbox['x'][1], self._bbox['y'][1]),
-                              (255, 255, 255), 1)
+                              self._draw_color_v, thickness=1, lineType=cv2.LINE_AA)
 
     def _set_geom(self):
         # Determine grid layout
@@ -113,11 +119,11 @@ class ButtonBox(Control):
         new_over_ind = self._find_button(xy)
         if new_over_ind is not None:
             if self._over_ind is not None:
-                self.buttons[self._over_ind].mouse_out(xy, self.name)
-            self.buttons[new_over_ind].mouse_over(xy, self.name)
+                self.buttons[self._over_ind].mouse_out(xy)
+            self.buttons[new_over_ind].mouse_over(xy)
             self._over_ind = new_over_ind
         elif self._over_ind is not None:
-            self.buttons[self._over_ind].mouse_out(xy, self.name)
+            self.buttons[self._over_ind].mouse_out(xy)
             self._over_ind = None
 
     def mouse_down(self, xy):
@@ -152,7 +158,9 @@ class ButtonBox(Control):
         return MouseReturnStates.unused
 
     def mouse_out(self, xy):
-        pass
+        self._update_mouseovers(xy)
+        self._moused_over = False
 
     def mouse_over(self, xy):
-        pass
+        self._update_mouseovers(xy)
+        self._moused_over = True

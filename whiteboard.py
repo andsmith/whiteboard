@@ -29,7 +29,7 @@ class WhiteboardApp(object):
                          'board': self._make_board_window(views['board'],
                                                           self._tool_manager,
                                                           self._vector_manager)}
-
+        self._win_titles = {win_kind: self._windows[win_kind].get_name_and_title()[1] for win_kind in self._windows}
         #  Added last, so mouse signals are sent to other controls first.
         # self._windows['control'].add_control(self._zoom_controllers['control'])
         # self._windows['board'].add_control(self._zoom_controllers['board'])
@@ -81,16 +81,17 @@ class WhiteboardApp(object):
 
         # Tool buttons
         tool_name_grid = CONTROL_LAYOUT['tool_box']['options']
-        tool_buttons = [[ToolButton(cw, "TB: %s" % (tool_name,), EMPTY_BBOX, tool_name)
+        tool_buttons = [[ToolButton(cw, tool_name, EMPTY_BBOX)
                          for tool_name in row]
                         for row in tool_name_grid]
         tool_button_box = unit_to_abs_bbox(CONTROL_LAYOUT['tool_box']['loc'], ctrl_win_size)
+        print("Tools    ", tool_button_box)
         tool_control = ButtonBox(cw, 'tool_button_box', tool_button_box, tool_buttons, exclusive=True)
 
         # zoom slider
         zoom_slider_box = unit_to_abs_bbox(CONTROL_LAYOUT['zoom_slider']['loc'], ctrl_win_size)
         zoom_slider = Slider(cw, zoom_slider_box, 'control_zoom_slider',
-                             orientation=CONTROL_LAYOUT['zoom_slider']['orientation'],
+                             orientation=CONTROL_LAYOUT['zoom_slider']['loc']['orientation'],
                              values=[-10, 10], init_pos=0.5)
 
         # add controls to window
@@ -113,7 +114,7 @@ class WhiteboardApp(object):
         # zoom slider
         zoom_slider_box = unit_to_abs_bbox(BOARD_LAYOUT['zoom_bar']['loc'], board_win_size)
         zoom_slider = Slider(bw, zoom_slider_box, 'board_zoom_slider',
-                             orientation=BOARD_LAYOUT['zoom_bar']['orientation'],
+                             orientation=BOARD_LAYOUT['zoom_bar']['loc']['orientation'],
                              values=[-10, 10], init_pos=0.5)
         bw.add_control(zoom_slider)
         return bw
@@ -146,11 +147,13 @@ class WhiteboardApp(object):
 
     def _keypress(self, key):
         if key == 27 or key == ord('q'):
+            print("User quit.")
             return False
         for win_kind in self._windows:
-            if cv2.getWindowProperty(self._win_names[win_kind], cv2.WND_PROP_VISIBLE):
-                self._windows[win_kind].keypress(key)
-                break
+            if cv2.getWindowProperty(self._win_titles[win_kind], cv2.WND_PROP_VISIBLE):
+                if not self._windows[win_kind].keypress(key):
+                    break
+        return True
 
 
 if __name__ == "__main__":

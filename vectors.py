@@ -70,11 +70,13 @@ class Vector(Renderable, ABC):
     def finalize(self):
         self._finalized_t = time.time()
 
-    def add_point(self, xy_board):
+    def add_point(self, xy, view=None):
         """
         User moved the mouse, add the new point.
-        :param xy_board: (x, y) tuple, in board coordinates.
+        :param xy: the point to add, assumed to be pixel coords (ints) if view is not None, else board coords (floats).
+        :param view: BoardView object
         """
+        xy_board = view.pixels_to_pts(xy) if view is not None else xy
         self._points.append(xy_board)
         self._bbox = get_bbox(self._points)
 

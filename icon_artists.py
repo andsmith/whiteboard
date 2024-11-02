@@ -1,5 +1,5 @@
 from gui_components import Renderable
-from layout import COLORS_BGR, BOARD_LAYOUT,DEFAULT_ICON_MARGIN_FRAC
+from layout import COLORS_BGR, BOARD_LAYOUT, DEFAULT_ICON_MARGIN_FRAC
 import logging
 import cv2
 import numpy as np
@@ -15,6 +15,7 @@ def load_scribble():
 
 CTRL_PT_COLORS_BGR = {'outer': COLORS_BGR['black'],
                       'inner': COLORS_BGR['white']}
+
 UNIT_SCRIBBLE_COORDS = load_scribble()
 
 
@@ -23,14 +24,15 @@ class IconArtist(Renderable, ABC):
     Draw a simple shape in a bounding box.
     """
 
-    def __init__(self, board, bbox, margin_frac = None):
+    def __init__(self, board, bbox, margin_frac=None):
         """
         :param margin_frac: float, fraction of the bounding box to leave as margin when drawing icon.
         """
         self._margin_frac = margin_frac if margin_frac is not None else DEFAULT_ICON_MARGIN_FRAC
-        
+
         super().__init__(self._get_name(), bbox)
-        self._color_v = board.default_color_v
+        self._obj_color_v = COLORS_BGR[BOARD_LAYOUT['obj_color']]  # parts of icon drawn whose color doesn't change
+        self.color_v = COLORS_BGR[BOARD_LAYOUT['obj_color']]  # parts of icon need to be drawn in this color
         self._lines = []  # list of np.int32 arrays of points (each is an Nx2 polyline)
         self._ctrl_points = []  # list of control points (Cx2)
         self._set_geom()
@@ -72,15 +74,14 @@ class IconArtist(Renderable, ABC):
         Draw the icon on the image w/ a bounding box.
         """
         cv2.rectangle(img, (self._bbox['x'][0], self._bbox['y'][0]),
-                      (self._bbox['x'][1], self._bbox['y'][1]), self._color_v, 1)
+                      (self._bbox['x'][1], self._bbox['y'][1]), self._obj_color_v, 1)
         self.render(img)
 
     def render(self, img):
         """
         Draw the unfilled circle, with the control points.
         """
-        cv2.polylines(img, self._lines, True,
-                      self._color_v, lineType=cv2.LINE_AA, thickness=1, shift=PREC_BITS)
+        cv2.polylines(img, self._lines, True, self.color_v, lineType=cv2.LINE_AA, thickness=1, shift=PREC_BITS)
         for ctrl_point in self._ctrl_points:
             self._draw_ctrl_point(img, ctrl_point)
 
@@ -89,7 +90,6 @@ class CircleIcon(IconArtist):
     """
     Draw a circle taking up the whole bounding box, minus the margin.
     """
-
 
     def _set_geom(self):
         x_min, x_max = self._bbox['x'][0], self._bbox['x'][1]
@@ -147,7 +147,7 @@ class PencilIcon(CircleIcon):
 
     def render(self, img):
         cv2.polylines(img, self._lines, False,
-                      self._color_v, lineType=cv2.LINE_AA, thickness=1, shift=PREC_BITS)
+                      self.color_v, lineType=cv2.LINE_AA, thickness=1, shift=PREC_BITS)
         self._draw_ctrl_point(img, self._ctrl_point1)
         self._draw_ctrl_point(img, self._ctrl_point2)
 
@@ -188,8 +188,12 @@ class PanIcon(IconArtist):
                                                             self._bbox,
                                                             margin_frac=self._margin_frac))
                        for rel_line in rel_lines]
-        
+
         self._ctrl_points = [(x_center, y_center)]
+
+    def render(self, img):
+        self.color_v = self._obj_color_v
+        super().render(img)
 
 
 class SelectIcon(RectangleIcon):
@@ -214,6 +218,9 @@ class SelectIcon(RectangleIcon):
         # these are not stored as fixed-point numbers, make them floats again:
         self._ctrl_points = [(x/PREC_SCALE, y/PREC_SCALE) for x, y in fixed_ctrl_points]
 
+    def render(self, img):
+        self.color_v = self._obj_color_v
+        super().render(img)
 
 # keys should match ToolManager._TOOLS.keys() so buttons can see both.
 BUTTON_ARTISTS = {'circle': CircleIcon,
@@ -233,21 +240,26 @@ class FakeBoard:
 
 def test_icon_artists():
 
-    img = np.zeros((150, 600, 3), dtype=np.uint8) + np.array(COLORS_BGR['white'], dtype=np.uint8)
-    circle = CircleIcon(FakeBoard(), {'x': (10, 70), 'y': (10, 70)})
-    line = LineIcon(FakeBoard(), {'x': (110, 170), 'y': (10, 70)})
+    img1 = np.zeros((150, 600, 3), dtype=np.uint8) + np.array(COLORS_BGR['white'], dtype=np.uint8)
+    img2 = np.zeros((150, 600, 3), dtype=np.uint8) + np.array(COLORS_BGR['white'], dtype=np.uint8)
+    icons = {'circle': CircleIcon(FakeBoard(), {'x': (10, 70), 'y': (10, 70)}),
+             'line': LineIcon(FakeBoard(), {'x': (110, 170), 'y': (10, 70)}),
 
-    pencil = PencilIcon(FakeBoard(), {'x': (210, 270), 'y': (10, 70)})
-    rectangle = RectangleIcon(FakeBoard(), {'x': (310, 370), 'y': (10, 70)})
-    pan = PanIcon(FakeBoard(), {'x': (410, 470), 'y': (10, 70)})
-    select = SelectIcon(FakeBoard(), {'x': (510, 570), 'y': (10, 70)})
+             'pencil': PencilIcon(FakeBoard(), {'x': (210, 270), 'y': (10, 70)}),
+             'rectangle': RectangleIcon(FakeBoard(), {'x': (310, 370), 'y': (10, 70)}),
+             'pan': PanIcon(FakeBoard(), {'x': (410, 470), 'y': (10, 70)}),
+             'select': SelectIcon(FakeBoard(), {'x': (510, 570), 'y': (10, 70)})}
 
-    circle.boxed_render(img)
-    line.boxed_render(img)
-    pencil.boxed_render(img)
-    rectangle.boxed_render(img)
-    pan.boxed_render(img)
-    select.boxed_render(img)
+    for icon in icons.values():
+        icon.boxed_render(img1)
+    
+    # Change colors
+    colors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'black', 'neon_green']
+    for i, icon_n in enumerate(icons):
+        icons[icon_n].color_v = COLORS_BGR[colors[i]]
+        icons[icon_n].render(img2)
+
+    img = np.concatenate((img1, img2), axis=0)
 
     cv2.imshow('circle', img)
     cv2.waitKey(0)

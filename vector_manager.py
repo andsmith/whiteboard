@@ -16,11 +16,10 @@ class VectorManager(object):
     def __init__(self, load_file=None):
         if load_file:
             self.load(load_file)
-        self._deleted = []  # list of deleted vectors (current stored in self._elements)
+        self._vectors = []
+        self._deleted = []  # list of deleted vectors (current stored in self._vectors)
         self._types = {cls.__name__: cls for cls in VECTORS}
 
-    def _init_elements(self):
-        pass  # init was done by the load, if necessary.
 
     def save(self, filename):
 
@@ -29,7 +28,7 @@ class VectorManager(object):
                       'data': vector.get_data()}
             return json.dumps(packet)
 
-        vectors = [_serialize(vector) for vector in self._elements]
+        vectors = [_serialize(vector) for vector in self._vectors]
         deleted = [_serialize(vector) for vector in self._deleted]
 
 
@@ -45,7 +44,7 @@ class VectorManager(object):
         with open(filename, 'r') as f:
             vectors, deleted = json.load(f)
 
-        self._elements = [_deserialize(vector) for vector in vectors]
+        self._vectors = [_deserialize(vector) for vector in vectors]
         self._deleted =[_deserialize(vector) for vector in deleted]
 
 
@@ -54,22 +53,22 @@ class VectorManager(object):
         Return all vectors that are visible in the bbox.
         i.e. whose bboxes intersect the given bbox.
         """
-        return [vector for vector in self._elements if vector.inside(bbox)]
+        return [vector for vector in self._vectors if vector.inside(bbox)]
 
     def add_vector(self, vector):
-        self._elements.append(vector)
+        self._vectors.append(vector)
 
     def delete(self, vector):
         self._deleted.append(vector)
-        self._elements.remove(vector)
+        self._vectors.remove(vector)
 
     def undo_delete(self):
         if self._deleted:
-            self._elements.append(self._deleted.pop())
+            self._vectors.append(self._deleted.pop())
 
     def render(self, img, view):
-        print("Rendering %i vectors" % len(self._elements))
-        for vector in self._elements:
+        #print("Rendering %i vectors" % len(self._vectors))
+        for vector in self._vectors:
             print(vector.name, vector._color, vector._thickness)
             vector.render(img, view)
 

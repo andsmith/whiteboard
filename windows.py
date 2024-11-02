@@ -49,9 +49,12 @@ class UIWindow(ABC):
         self.tools = tool_manager
         self._controls = []
 
+    def get_name_and_title(self):
+        return self._name, self._title
+
     def start_pan(self, xy):
         self._pan_start_xy = np.array(xy)
-        self._old_view = self._view
+        self._old_view = self.view
 
     def end_pan(self):
         self._pan_start_xy = None
@@ -59,31 +62,32 @@ class UIWindow(ABC):
 
     def pan_to(self, xy):
         rel_xy = np.array(xy) - self._pan_start_xy
-        self._view = self._old_view.pan(rel_xy)
+        self.view = self._old_view.pan(rel_xy)
 
     def add_control(self, control):
         self._controls.append(control)
 
     def start(self):
-        cv2.namedWindow(self._name, self._title)
-        cv2.resizeWindow(self._name, self._window_size[0], self._window_size[1])
-        cv2.setMouseCallback(self._name, self.cv2_mouse_event, param=self._name)
+        cv2.namedWindow(self._title)
+        cv2.resizeWindow(self._title, self._window_size[0], self._window_size[1])
+        cv2.setMouseCallback(self._title, self.cv2_mouse_event, param=self._name)
 
     def refresh(self):
         frame = self._blank.copy()
-        self.vectors.render(frame, self._view)
+        self.vectors.render(frame, self.view)
         for control in self._controls:
-            control.render(frame, self._view)
+            control.render(frame)
         cv2.imshow(self._title, frame)
 
     def _update_mouseover(self, xy):
         for i, control in enumerate(self._controls):
             if control.in_bbox(xy):
-                control.mouse_over(xy, self._view)
+                print(control.name, "in bbox")
+                control.mouse_over(xy)
                 self._control_moused_over = i
                 return
         if self._control_moused_over is not None:
-            self._controls[self._control_moused_over].mouse_out(self._view)
+            self._controls[self._control_moused_over].mouse_out(xy)
             self._control_moused_over = None
 
     def cv2_mouse_event(self, event, x, y, flags, param):
@@ -100,7 +104,7 @@ class UIWindow(ABC):
                     self._control_with_mouse = None
                     
             if self._tool_has_mouse:
-                rv = self.tools.mouse_move((x, y))
+                rv = self.tools.current_tool.mouse_move((x, y),self)
                 if rv == MouseReturnStates.released:
                     self._tool_has_mouse = False
                     
@@ -116,7 +120,7 @@ class UIWindow(ABC):
                     if rv in [MouseReturnStates.captured, MouseReturnStates.released]:
                         return
                     
-            rv = self.tools.mouse_down((x, y))
+            rv = self.tools.current_tool.mouse_down((x, y),self)
             if rv == MouseReturnStates.captured:
                 self._tool_has_mouse = True
             
@@ -127,13 +131,16 @@ class UIWindow(ABC):
                     self._control_with_mouse = None
                 
             elif self._tool_has_mouse:
-                rv = self.tools.mouse_up((x, y))
+                rv = self.tools.current_tool.mouse_up((x, y),self)
                 if rv == MouseReturnStates.released:
                     self._tool_has_mouse = False
                 return
-                    
+    def keypress(self, key):
+        if key & 0xff != 255:
+            print("Window %s pressed key %s." % (self._title, key))
+        return True
                     
             
     def close(self):
-        cv2.destroyWindow(self._name)
+        cv2.destroyWindow(self._title)
         

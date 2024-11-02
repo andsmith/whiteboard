@@ -17,7 +17,7 @@ class FakeToolManager(object):
     def set_color(self, color):
         logging.info("Setting color to %s" % color)
 
-    def set_tool(self, tool):
+    def switch_tool(self, tool):
         logging.info("Setting tool to %s" % tool)
 
 

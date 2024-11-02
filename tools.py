@@ -94,27 +94,26 @@ class Pan(Tool):
         window.end_pan()
         
 
-"""
 
-class Select(Tool):
-    # Defined by bbox, vectors are selected 
-    pass
+class Select(Rectangle):
+    def mouse_up(self, xy, window):
+        print("User stopped selecting, finish this method...")
     
-"""
+
 class ToolManager(object):
     # Manages anything user uses to change the whiteboard.
     _TOOLS = {'pencil': Pencil,
               'line': Line,
               'rectangle': Rectangle,
               'circle': Circle,
-              'pan': Pan,}
-              #'select': Select
+              'pan': Pan,
+              'select': Select}
 
     def __init__(self, vector_manager, init_tool_name = 'pencil', init_color = 'black', init_thickness = 2):
         self._vectors = vector_manager
         self._color_n = init_color
         self._thickness = init_thickness 
-        self._current_tool_ind = None
+        self.current_tool = None  # external access to current tool
         self._init_tools()
         self.switch_tool(init_tool_name)
 
@@ -123,19 +122,19 @@ class ToolManager(object):
         self._vectors.add_vector(vector)
         
     def switch_tool(self, new_tool_name):
-        try:
-            self._current_tool_ind = self._tools[new_tool_name]
-        except KeyError:
-            raise ValueError(f'Invalid tool name (did you add to self._tools in _init_elements?): {new_tool_name}')
+        if new_tool_name not in self._tools:
+            ValueError(f'Invalid tool name (did you add to self._tools in _init_elements?): {new_tool_name}')
+        self.current_tool = self._tools[new_tool_name]
         logging.info(f"Switched to tool: {new_tool_name}")
+
         
     def _init_tools(self):
         self._tools = {'pencil': Pencil(self),
                        'line': Line(self),
                        'rectangle': Rectangle(self),
-                       'circle': Circle(self),}
-                       #'pan': Pan(self),
-                       #'select': Select(self)
+                       'circle': Circle(self),
+                       'pan': Pan(self),
+                       'select': Select(self)}
         
         self._tool_list = list(self._tools.values())
 
@@ -148,9 +147,3 @@ class ToolManager(object):
 
     def render(self, img):
         pass
-
-    def mouse_event(self, event, x, y, flags, param):
-        """
-        Send the mouse event to the current tool.
-        """
-        return self._tool_list[self._current_tool_ind].mouse_event(event, x, y, flags, param)

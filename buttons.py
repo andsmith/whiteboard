@@ -187,12 +187,13 @@ class ToolButton(CircleButton):
     A button representing a tool the user can select.
     """
 
-    def __init__(self, board, name, bbox,  **kwargs):
+    def __init__(self, window, name, bbox,  **kwargs):
+        print(kwargs)
         if name not in BUTTON_ARTISTS:
             raise ValueError("Invalid tool name, no artist: %s" % name)
-        self._artist = BUTTON_ARTISTS[name](board, bbox)
+        self._artist = BUTTON_ARTISTS[name](window, bbox)
 
-        super().__init__(board, name, bbox, action_mouseup=False,
+        super().__init__(window, name, bbox, action_mouseup=False,
                          callbacks=(self._change_tool,), **kwargs)
         
     def move_to(self, xy, new_bbox=None):

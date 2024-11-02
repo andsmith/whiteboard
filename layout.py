@@ -51,7 +51,7 @@ CONTROL_LAYOUT = {
 
     # toolbox, strip in the middle of the right side of the window
     'tool_box': {'options': [['pencil', 'line'], ['rectangle', 'circle'], ['select', 'pan']],
-                 'loc': {'x': [.85, 95],
+                 'loc': {'x': [.85, .95],
                          'y': [.3, .6]},
                  'line_widths': [1, 2, 3, 5, 8, 13]},
 

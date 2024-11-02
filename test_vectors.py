@@ -50,7 +50,7 @@ def test_vectors(show=True):
             all_pts.append(points)
 
     all_pts = np.vstack(all_pts)
-    view = get_board_view(all_pts, display_size)
+    view = get_board_view('test',all_pts, display_size)
     frame = (np.zeros((display_size[1], display_size[0], 3)) + COLORS_RGB[BKG]).astype(np.uint8)
 
     vm.render(frame, view)
@@ -77,7 +77,7 @@ def test_vectors(show=True):
             
 
     # check that the vectors are the same
-    for v1, v2 in zip(vm._elements, vm2._elements):
+    for v1, v2 in zip(vm._vectors, vm2._vectors):
         assert v1 == v2, f"vectors should be the same: {v1.get_data()} != {v2.get_data()}"
 
     # render the vectors from the loaded manager
@@ -98,7 +98,7 @@ def test_board_view():
     np.random.seed(0)
     size = (640, 480)
     points = np.random.rand(100*2).reshape((100, 2)) * np.array([100, 10])
-    view = get_board_view(points, size, margin=0.025)
+    view = get_board_view("test",points, size, margin=0.025)
 
     visible_bboxes = [('points bbox', {'x': (0, 100), 'y': (0, 10)}),
                       ('big bbox', {'x': (-10, 120), 'y': (-1, 11)}),

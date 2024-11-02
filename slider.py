@@ -12,7 +12,7 @@ from gui_components import MouseReturnStates
 
 
 class Slider(Control):
-    def __init__(self, board, bbox, label, orientation='horizontal', values=[1.0, 10.], interpolate=True, init_pos=0.5, visible=True):
+    def __init__(self, board, bbox, label, orientation='horizontal', values=[1.0, 10.], interpolate=True, init_pos=0.5, visible=True, show_bbox=False):
         """
         :param board: Board object
         :param bbox: {'x': (x_min, x_max), 'y': (y_min, y_max)}
@@ -26,8 +26,8 @@ class Slider(Control):
         :param init_pos: float, initial position of the slider, reletive to endpoints.
         """
         logging.info("Creating %s slider '%s' in bbox %s." % (orientation, label, bbox))
-        super().__init__(board, label, bbox, visible)
         self._label = label
+        self._show_bbox = show_bbox
         self._orientation = orientation
         self._values = values
         self._interpolate = interpolate
@@ -43,7 +43,10 @@ class Slider(Control):
         self._line_color = COLORS_RGB[SLIDERS['line_color']]
         self._tab_color = COLORS_RGB[SLIDERS['tab_color']]
         self._label_color = COLORS_RGB[SLIDERS['label_color']]
-        self._set_geom()
+
+        super().__init__(board, label, bbox, visible)
+
+        # calls self._set_geom()
 
     def _set_geom(self):
 
@@ -104,7 +107,7 @@ class Slider(Control):
         return {'x': (x-w//2, x + w//2),
                 'y': (y-h//2, y + h//2)}
 
-    def render(self, img, show_bbox=True):
+    def render(self, img):
         """
         Draw the slider on the image:
             * A line represents the possible positions of the slider
@@ -112,7 +115,8 @@ class Slider(Control):
             * "label:  value" is displayed to the left of the line, or above the box, depending on self.orientation
         """
         # draw line first
-        cv2.line(img, tuple(self._line_endpoints[0, :]), tuple(self._line_endpoints[1, :]), self._line_color, self._line_thickness)
+        cv2.line(img, tuple(self._line_endpoints[0, :]), tuple(
+            self._line_endpoints[1, :]), self._line_color, self._line_thickness)
         # draw tab
         tab_pos = self.get_tab_pos()
         tab_p1 = (int(tab_pos['x'][0]), int(tab_pos['y'][0]))
@@ -131,7 +135,7 @@ class Slider(Control):
         cv2.putText(img, label, (x, y), self._label_font, self._font_scale, self._label_color, self._font_thickness,
                     lineType=cv2.LINE_AA)
 
-        if show_bbox:
+        if self._show_bbox:
             draw_bbox(img, self._bbox, COLORS_RGB['white'], 1)
 
     def _click_to_rel_value(self, xy_px):
@@ -177,15 +181,14 @@ class Slider(Control):
             max_width = max(max_width, width)
             max_height = max(max_height, height)
         return max_width, max_height
-    
+
     def mouse_down(self, xy):
         self._cur_value_rel = self._click_to_rel_value(xy)
         return self._capture_mouse()
-    
+
     def mouse_up(self, xy):
         return self._release_mouse()
-    
+
     def mouse_move(self, xy):
         self._cur_value_rel = self._click_to_rel_value(xy)
         return MouseReturnStates.captured
-    
