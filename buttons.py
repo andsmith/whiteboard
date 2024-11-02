@@ -118,12 +118,12 @@ class CircleButton(Button, ABC):
     Round button w/an outine indicating mouse state and something drawn in the middle.
     """
 
-    def __init__(self, window, name, bbox, callbacks=(), action_mouseup=True,  outline_frac=None):
+    def __init__(self, window, name, bbox, callbacks=(), states=(False, True), action_mouseup=True,  outline_frac=None):
         """
         :param outline_frac: fraction of the button radius (half side-length of inscribed square) defining the radius of the outine.
         """
         self._outline_frac = outline_frac if outline_frac is not None else TOOL_BUTTONS['outline_frac']
-        super().__init__(window, name, bbox, callbacks=callbacks, action_mouseup=action_mouseup, show_bbox=False)
+        super().__init__(window, name, bbox, callbacks=callbacks, action_mouseup=action_mouseup, show_bbox=False,states=states)
         self._set_geom()
 
     def _set_geom(self):
@@ -190,14 +190,14 @@ class ArtistButton(CircleButton):
     A CircleButton, but drawn by an IconArtist
     """
 
-    def __init__(self, window, name, bbox, callbacks,  **kwargs):
+    def __init__(self, window, name, bbox, callbacks, states=(False, True),  **kwargs):
 
         if name not in BUTTON_ARTISTS:
             raise ValueError("Invalid button artist: %s" % name)
         self._artist = BUTTON_ARTISTS[name](window, bbox)
 
         super().__init__(window, name, bbox, action_mouseup=False,
-                         callbacks=callbacks, **kwargs)
+                         callbacks=callbacks,states=states, **kwargs)
 
     def move_to(self, xy, new_bbox=None):
         super().move_to(xy, new_bbox)

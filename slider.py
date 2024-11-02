@@ -37,7 +37,7 @@ class Slider(Control):
 
         # state
         self._cur_value_rel = init_pos  # stores current position of slider tab
-
+        self._obj_color_v = COLORS_RGB[SLIDERS['line_color']]
         self._line_thickness = SLIDERS['line_thickness']
         self._label_font = SLIDERS['label_font']
         self._line_color = COLORS_RGB[SLIDERS['line_color']]
@@ -140,7 +140,7 @@ class Slider(Control):
                     lineType=cv2.LINE_AA)
 
         if self._show_bbox:
-            draw_bbox(img, self._bbox, COLORS_RGB['white'], 1)
+            draw_bbox(img, self._bbox, self._obj_color_v, 1)
 
     def _click_to_rel_value(self, xy_px):
         """

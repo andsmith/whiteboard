@@ -175,7 +175,13 @@ class UndoRedoIcon(IconArtist):
         arrow = scale_points_to_bbox(np.array(arrow_rel, dtype=np.float64), self._bbox, margin_frac=self._margin_frac)
         self._lines = [floats_to_fixed(arrow)]
 
+class UndoIcon(UndoRedoIcon):
+    def __init__(self, board, bbox, margin_frac=None):
+        super().__init__(board, bbox, direction=1, margin_frac=margin_frac)
 
+class RedoIcon(UndoRedoIcon):
+    def __init__(self, board, bbox, margin_frac=None):
+        super().__init__(board, bbox, direction=-1, margin_frac=margin_frac)
 
 
 
@@ -307,7 +313,9 @@ BUTTON_ARTISTS = {'circle': CircleToolIcon,
                   'pencil': PencilToolIcon,
                   'pan': PanToolIcon,
                   'select': SelectToolIcon,
-                  'grid': GridIcon}
+                  'grid': GridIcon,
+                  'undo': UndoIcon,
+                  'redo': RedoIcon}
 
 _DEFAULT_COLOR_BGR = COLORS_BGR[BOARD_LAYOUT['obj_color']]
 
@@ -328,8 +336,8 @@ def test_icon_artists():
              'pan': PanToolIcon(FakeBoard(), {'x': (410, 470), 'y': (10, 70)}),
              'select': SelectToolIcon(FakeBoard(), {'x': (510, 570), 'y': (10, 70)}),
              'grid': GridIcon(FakeBoard(), {'x': (610, 670), 'y': (10, 70)}),
-             'undo': UndoRedoIcon(FakeBoard(), {'x': (710, 770), 'y': (10, 70)}, direction=1),
-             'redo': UndoRedoIcon(FakeBoard(), {'x': (810, 870), 'y': (10, 70)}, direction=-1)
+             'undo': UndoIcon(FakeBoard(), {'x': (710, 770), 'y': (10, 70)}),
+             'redo': RedoIcon(FakeBoard(), {'x': (810, 870), 'y': (10, 70)})
              }
 
     for icon in icons.values():
@@ -338,6 +346,7 @@ def test_icon_artists():
     # Change colors
     colors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'black', 'black', 'black']
     for i, icon_n in enumerate(icons):
+        print(icon_n)
         icons[icon_n].color_v = COLORS_BGR[colors[i]]
         icons[icon_n].render(img2)
 

@@ -8,7 +8,7 @@ from board_view import BoardView
 from vector_manager import VectorManager
 from tools import ToolManager
 from util import unit_to_abs_bbox
-from buttons import ColorButton, ToolButton
+from buttons import ColorButton, ToolButton, ArtistButton
 from button_box import ButtonBox
 from slider import Slider
 # from zoom_view import ZoomViewControl
@@ -33,6 +33,18 @@ class WhiteboardApp(object):
         #  Added last, so mouse signals are sent to other controls first.
         # self._windows['control'].add_control(self._zoom_controllers['control'])
         # self._windows['board'].add_control(self._zoom_controllers['board'])
+
+        self._options = {'show_grid': True}
+
+    def get_option(self, option_name):
+        return self._options[option_name]
+
+    def set_option(self, option_name, value):
+        logging.info("Whiteboard changed option: '%s'  -->  %s." % (option_name, value))
+        self._options[option_name] = value
+
+    def toggle_option(self, option_name):
+        self.set_option(option_name, not self.get_option(option_name))
 
     def _make_zoom(self):
         """
@@ -84,22 +96,42 @@ class WhiteboardApp(object):
         tool_buttons = [[ToolButton(cw, tool_name, EMPTY_BBOX, outline_frac=1.2) if tool_name is not None else None
                          for tool_name in row]
                         for row in tool_name_grid]
+
         tool_button_box = unit_to_abs_bbox(CONTROL_LAYOUT['tool_box']['loc'], ctrl_win_size)
         print("Tools    ", tool_button_box)
         tool_control = ButtonBox(cw, 'tool_button_box', tool_button_box, tool_buttons, exclusive=True)
+
+        # command buttons
+        command_name_grid = CONTROL_LAYOUT['command_box']['options']  
+        command_buttons = {'undo': ArtistButton(cw, 'undo', EMPTY_BBOX, callbacks=(self.undo,), states=(False, )),
+                           'redo': ArtistButton(cw, 'redo', EMPTY_BBOX, callbacks=(self.redo,), states=(False, )),
+                           'grid': ArtistButton(cw, 'grid', EMPTY_BBOX, callbacks=(lambda *_: self.toggle_option('show_grid'),))}
+        command_buttons = [[command_buttons[command_name] if command_name is not None else None
+                            for command_name in row]
+                           for row in command_name_grid]
+        command_button_bbox = unit_to_abs_bbox(CONTROL_LAYOUT['command_box']['loc'], ctrl_win_size)
+        command_control = ButtonBox(cw, 'command_button_box', command_button_bbox, command_buttons, exclusive=False)
 
         # zoom slider
         zoom_slider_box = unit_to_abs_bbox(CONTROL_LAYOUT['zoom_slider']['loc'], ctrl_win_size)
         zoom_slider = Slider(cw, zoom_slider_box, 'control_zoom_slider', label_str=CONTROL_LAYOUT['zoom_slider']['label'],
                              orientation=CONTROL_LAYOUT['zoom_slider']['loc']['orientation'],
-                             values=[-10, 10], init_pos=0.5)
+                             values=[-10, 10], init_pos=0.5, show_bbox=True)
 
         # add controls to window
         cw.add_control(color_control)
         cw.add_control(tool_control)
         cw.add_control(zoom_slider)
+        cw.add_control(command_control)    
+        
 
         return cw
+
+    def undo(self, *_):
+        logging.info("Undoing last action.")
+
+    def redo(self, *_):
+        logging.info("Redoing last action.")
 
     def _make_board_window(self, view, tool_manager, vector_manager):
         board_win_size = BOARD_LAYOUT['win_size']

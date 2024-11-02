@@ -33,8 +33,8 @@ UI_LINE_THICKNESS = 2
 # Board is the main display window
 BOARD_LAYOUT = {'win_size': (1200, 800),
                 'win_name': 'Whiteboard Board',
-                'bkg_color': 'off_white',
-                'obj_color': 'dark_dark_gray',
+                'bkg_color': 'off_white',  # shared w/control win
+                'obj_color': 'dark_dark_gray',  # also shared
                 'init_zoom': 1.0,
                 'init_origin': (0, 0),
                 'init_zoom_window_extent': {'x': (0.05, 0.5),  # upper left corner
@@ -51,7 +51,7 @@ CONTROL_LAYOUT = {
     'zoom_window_margin': 0.1,  # fraction of window size, set zoom to whatever fits the current zoom_window_extent.
 
     # toolbox, strip in the middle of the right side of the window
-    'tool_box': {'options': [['pencil', 'line'], ['rectangle', 'circle'], ['select', 'pan'], ['grid', None]],
+    'tool_box': {'options': [['pencil', 'line'], ['rectangle', 'circle'], ['select', 'pan']],
                  'loc': {'x': [.85, .95],
                          'y': [.3, .6]},
                  'line_widths': [1, 2, 3, 5, 8, 13]},
@@ -64,12 +64,15 @@ CONTROL_LAYOUT = {
                               ['blue', 'yellow'],
                               ['purple', 'green']]},
 
-    # command box (undo/redo, clear, grid, connect, etc.) is
+    # command box (undo/redo, clear, grid, connect, etc.) is at the bottom left, next to the zoom slider
+    'command_box': {'loc': {'x': [.15, .45],
+                            'y': [.85, .95]},
+                    'options': [['undo',None, None, None, None, 'grid'],]},
 
 
     # zoom slider-bar, horizontal, accros bottom.
-    'zoom_slider': {'loc': {'x': [.5, .95],
-                            'y': [.85, .95],
+    'zoom_slider': {'loc': {'x': [.55, .85],
+                            'y': [.85, .85],
                             'orientation': 'horizontal'},
                     'label': 'Zoom: %.1f'},
 }
