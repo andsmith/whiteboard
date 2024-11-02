@@ -12,9 +12,10 @@ class Tool(ABC):
     things used to create different kinds of vector objects or manipulate them (pencil, line, ...)
     """
 
-    def __init__(self, tool_manager):
+    def __init__(self, tool_manager, vector_manager):
         self._manager = tool_manager
-        self._active_vec = None  # in-progress vector object
+        self._vecs = vector_manager
+        self._active_vec = None  # the vector being created by the user
 
     @abstractmethod
     def mouse_down(self, xy, window):
@@ -35,14 +36,14 @@ class Tool(ABC):
 
     def render(self, img):
         # TODO:  Render cursors here?
-        if self._active_vec is not None:
-            self._active_vec.render(img)
-
+        pass
 
 class Pencil(Tool):
     def mouse_down(self, xy, window):
+        print("Pencil mouse down")
         self._active_vec = PencilVec(*self._manager.get_color_thickness())
         self._active_vec.add_point(xy, window.view)
+        self._vecs.start_vector(self._active_vec)
         return MouseReturnStates.captured
 
     def mouse_move(self, xy, window):
@@ -53,15 +54,18 @@ class Pencil(Tool):
     def mouse_up(self, xy, window):
         if self._active_vec is not None:
             self._active_vec.finalize()
-            self._manager.commit_vector(self._active_vec)
+            self._vecs.finish_vector()
             self._active_vec = None
         return MouseReturnStates.released
 
 
 class Line(Pencil):
     def mouse_down(self, xy, window):
+
         self._active_vec = LineVec(*self._manager.get_color_thickness())
         self._active_vec.add_point(xy, window.view)
+        self._vecs.start_vector(self._active_vec)
+
         return MouseReturnStates.captured
 
 
@@ -69,6 +73,8 @@ class Rectangle(Pencil):
     def mouse_down(self, xy, window):
         self._active_vec = RectangleVec(*self._manager.get_color_thickness())
         self._active_vec.add_point(xy, window.view)
+        self._vecs.start_vector(self._active_vec)
+
         return MouseReturnStates.captured
 
 
@@ -76,13 +82,15 @@ class Circle(Pencil):
     def mouse_down(self, xy, window):
         self._active_vec = CircleVec(*self._manager.get_color_thickness())
         self._active_vec.add_point(xy, window.view)
+        self._vecs.start_vector(self._active_vec)
+
         return MouseReturnStates.captured
 
 
 class Pan(Tool):
 
-    def __init__(self, tool_manager):
-        super().__init__(tool_manager)
+    def __init__(self, tool_manager, vector_manager):
+        super().__init__(tool_manager, vector_manager)
         self._panning_window = None
 
     def mouse_down(self, xy, window):
@@ -104,6 +112,11 @@ class Pan(Tool):
 
 
 class Select(Rectangle):
+
+    def __init__(self, tool_manager, vector_manager):
+        super().__init__(tool_manager, vector_manager)
+        self._selected = None
+
     def mouse_up(self, xy, window):
         print("User stopped selecting, finish this method...")
         return MouseReturnStates.released
@@ -119,16 +132,12 @@ class ToolManager(object):
               'select': Select}
 
     def __init__(self, vector_manager, init_tool_name='pencil', init_color='black', init_thickness=2):
-        self._vectors = vector_manager
+        self.vectors = vector_manager
         self._color_n = init_color
         self._thickness = init_thickness
         self.current_tool = None  # external access to current tool
         self._init_tools()
         self.switch_tool(init_tool_name)
-
-    def commit_vector(self, vector):
-        # send to server...
-        self._vectors.add_vector(vector)
 
     def switch_tool(self, new_tool_name):
         if new_tool_name not in self._tools:
@@ -137,12 +146,12 @@ class ToolManager(object):
         logging.info(f"Switched to tool: {new_tool_name}")
 
     def _init_tools(self):
-        self._tools = {'pencil': Pencil(self),
-                       'line': Line(self),
-                       'rectangle': Rectangle(self),
-                       'circle': Circle(self),
-                       'pan': Pan(self),
-                       'select': Select(self)}
+        self._tools = {'pencil': Pencil(self, self.vectors),
+                       'line': Line(self,self.vectors),
+                       'rectangle': Rectangle(self,self.vectors),
+                       'circle': Circle(self,self.vectors),
+                       'pan': Pan(self, self.vectors),
+                       'select': Select(self,self.vectors),}
 
         self._tool_list = list(self._tools.values())
 
@@ -155,4 +164,4 @@ class ToolManager(object):
         return self._color_n, self._thickness
 
     def render(self, img):
-        pass
+        self.current_tool.render(img)

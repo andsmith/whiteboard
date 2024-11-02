@@ -116,8 +116,10 @@ class LineVec(PencilVec):
     Line vector connects the first and last points.
     """
     _NAME = 'line'
-    def add_point(self, xy_board):
+    def add_point(self, xy, view=None):
         # only keep the first and last points:
+        xy_board = view.pts_from_pixels(xy) if view is not None else xy
+
         super().add_point(xy_board)
         if len(self._points) > 2:
             self._points = [self._points[0], self._points[-1]]

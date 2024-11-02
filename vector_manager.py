@@ -16,6 +16,8 @@ class VectorManager(object):
     def __init__(self, load_file=None):
         if load_file:
             self.load(load_file)
+
+        self._vec_in_progress = None
         self._vectors = []
         self._deleted = []  # list of deleted vectors (current stored in self._vectors)
         self._types = {cls.__name__: cls for cls in VECTORS}
@@ -55,8 +57,17 @@ class VectorManager(object):
         """
         return [vector for vector in self._vectors if vector.inside(bbox)]
 
-    def add_vector(self, vector):
-        self._vectors.append(vector)
+    def start_vector(self, vector, also_finish=False):
+        self._vec_in_progress = vector
+
+        if also_finish:
+            self.finish_vector()
+
+    def finish_vector(self):
+        self._vectors.append(self._vec_in_progress)
+
+    def cancel_vector(self):
+        self._vec_in_progress = None
 
     def delete(self, vector):
         self._deleted.append(vector)
@@ -70,6 +81,9 @@ class VectorManager(object):
         #print("Rendering %i vectors" % len(self._vectors))
         for vector in self._vectors:
             vector.render(img, view)
+
+        if self._vec_in_progress:
+            self._vec_in_progress.render(img, view)
 
     def mouse_event(self, event, x, y, flags, param):
         # vectors are not interactive, only controlled by tools & controls.

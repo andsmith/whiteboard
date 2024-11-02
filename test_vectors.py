@@ -46,7 +46,7 @@ def test_vectors(show=False):
                 vec.add_point(pt)
             vec.finalize()
             vectors.append(vec)
-            vm.add_vector(vec)
+            vm.start_vector(vec, also_finish=False)
             all_pts.append(points)
 
     all_pts = np.vstack(all_pts)
