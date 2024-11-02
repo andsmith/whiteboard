@@ -12,7 +12,7 @@ class ButtonBox(Control):
     A group of buttons that can be clicked.
     """
 
-    def __init__(self, board, name, bbox, button_grid, exclusive=False,
+    def __init__(self, window, name, bbox, button_grid, exclusive=False,
                  exclusive_init=None, visible=True):
         """
         (ignores button's individual bboxes, aranges according to bbox & button_grid)
@@ -26,15 +26,23 @@ class ButtonBox(Control):
         :param button_grid: list of lists of Button objects (can be None), 
             to be displayed in that arangement, in the bbox.
         """
-        super().__init__(board, name, bbox, visible)
         self._exclusive = exclusive
         self._button_grid = button_grid
         self.buttons = []  # flattened list of buttons
         self._down_ind = None
         self._over_ind = None
-        self._set_geom()
+        super().__init__(window, name, bbox, visible)
         self._init_semantics(exclusive_init)
         logging.info("Created ButtonBox %s (Exclusive=%s)" % (name, exclusive))
+
+    def render(self, img, show_bbox=True):
+        if self.visible:
+            for button in self.buttons:
+                button.render(img, show_bbox)
+            if show_bbox:
+                cv2.rectangle(img, (self._bbox['x'][0], self._bbox['y'][0]),
+                              (self._bbox['x'][1], self._bbox['y'][1]),
+                              (255, 255, 255), 1)
 
     def _set_geom(self):
         # Determine grid layout

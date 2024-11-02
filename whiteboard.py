@@ -11,7 +11,7 @@ from util import unit_to_abs_bbox
 from buttons import ColorButton, ToolButton
 from button_box import ButtonBox
 from slider import Slider
-from zoom_view import ZoomViewControl
+# from zoom_view import ZoomViewControl
 
 
 class WhiteboardApp(object):
@@ -20,21 +20,21 @@ class WhiteboardApp(object):
 
         self._vector_manager = VectorManager(state_file)
         self._tool_manager = ToolManager(self._vector_manager)
-        self._zoom_controllers = self._make_zoom_views()
+        views, zoom_controllers = self._make_zoom()
 
-        self._windows = {'control': self._make_control_window(self._views['control'],
+        self._windows = {'control': self._make_control_window(views['control'],
                                                               self._tool_manager,
                                                               self._vector_manager),
 
-                         'board': self._make_board_window(self._views['board'],
+                         'board': self._make_board_window(views['board'],
                                                           self._tool_manager,
                                                           self._vector_manager)}
 
         #  Added last, so mouse signals are sent to other controls first.
-        self._windows['control'].add_control(self._zoom_controllers['control'])
-        self._windows['board'].add_control(self._zoom_controllers['board'])
+        # self._windows['control'].add_control(self._zoom_controllers['control'])
+        # self._windows['board'].add_control(self._zoom_controllers['board'])
 
-    def _make_views(self):
+    def _make_zoom(self):
         """
         The views are the parts of the board that are visible in each window.
 
@@ -46,19 +46,20 @@ class WhiteboardApp(object):
         :returns dict('control': BoardView, 'board': BoardView),
                 dict('control': ZoomViewControl, 'board': ZoomViewControl)
         """
+        ctrl_win_size = CONTROL_LAYOUT['win_size']
+
         board_view = BoardView('board',
                                BOARD_LAYOUT['win_size'],
                                BOARD_LAYOUT['init_origin'],
                                BOARD_LAYOUT['init_zoom'])
 
-        board_zc_bbox_px = unit_to_abs_bbox(BOARD_LAYOUT['init_zoom_window_extent'],
-                                            BOARD_LAYOUT['win_size'])
-
-        zoom_aspect = (board_zc_bbox_px['x'][1] - board_zc_bbox_px['x'][0]) / \
-            (board_zc_bbox_px['y'][1] - board_zc_bbox_px['y'][0])
-
-        zoom_control = ZoomViewControl(board_view, BOARD_LAYOUT['zoom_bar'])
-        return {'control': board_view, 'board': board_view}, {'control': zoom_control, 'board': zoom_control}
+        # For now, just scale 2x
+        ctrl_view = BoardView('control',
+                              ctrl_win_size,
+                              BOARD_LAYOUT['init_origin'],
+                              BOARD_LAYOUT['init_zoom'] * 2)
+        return {'control': ctrl_view, 'board': board_view}, \
+            {'control': None, 'board': None}
 
     def _make_control_window(self, view, tool_manager, vector_manager):
         ctrl_win_size = CONTROL_LAYOUT['win_size']
@@ -97,19 +98,18 @@ class WhiteboardApp(object):
         cw.add_control(tool_control)
         cw.add_control(zoom_slider)
 
-
         return cw
 
     def _make_board_window(self, view, tool_manager, vector_manager):
         board_win_size = BOARD_LAYOUT['win_size']
         bw = UIWindow('board',
-                       view,
-                       vector_manager,
-                       tool_manager,
-                       title=BOARD_LAYOUT['win_name'],
-                       window_size=board_win_size,
-                       bkg_color_n=BOARD_LAYOUT['bkg_color'])
-        
+                      view,
+                      vector_manager,
+                      tool_manager,
+                      title=BOARD_LAYOUT['win_name'],
+                      window_size=board_win_size,
+                      bkg_color_n=BOARD_LAYOUT['bkg_color'])
+
         # zoom slider
         zoom_slider_box = unit_to_abs_bbox(BOARD_LAYOUT['zoom_bar']['loc'], board_win_size)
         zoom_slider = Slider(bw, zoom_slider_box, 'board_zoom_slider',

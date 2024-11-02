@@ -54,21 +54,19 @@ class Control(Renderable):
         """
         pass
 
-    @abstractmethod
     def mouse_over(self, xy):
         """
         Called when user moved the mouse into the control bbox.
         Control may or may not have the mouse.
         """
-        pass
+        self._moused_over = True
 
-    @abstractmethod
     def mouse_out(self, xy):
         """
         Called when user moved the mouse out of the control bbox.
         Control may or may not have the mouse.
         """
-        pass
+        self._moused_over = False
 
     def _release_mouse(self):
         # convenience function for mouse_event implementations
