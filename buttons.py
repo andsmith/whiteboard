@@ -96,7 +96,7 @@ class Button(Control):
         """
         
         c = self._unselected_color_v
-        if self.moused_over:
+        if self._moused_over:
             c = self._mouseover_color_v
         if self.state:
             c = self._selected_color_v
