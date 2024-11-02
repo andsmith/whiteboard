@@ -29,6 +29,7 @@ class UIWindow(object):
 
         # for rendering window:
         self._color_v = COLORS_BGR[bkg_color_n]
+        self._draw_color_v = COLORS_BGR[BOARD_LAYOUT['obj_color']]
         self._blank = (np.zeros((window_size[1], window_size[0], 3)) + self._color_v).astype(dtype=np.uint8)
         self._pan_start_xy = None
         self._old_view = None
@@ -69,8 +70,10 @@ class UIWindow(object):
         cv2.resizeWindow(self._title, self._window_size[0], self._window_size[1])
         cv2.setMouseCallback(self._title, self.cv2_mouse_event, param=self._name)
 
-    def refresh(self):
+    def refresh(self, options = {}):
         frame = self._blank.copy()
+        if 'show_grid' in options and options['show_grid']:
+            self.view.render_grid(frame, line_color_v = self._draw_color_v, bkg_color_v = self._color_v)
         self.vectors.render(frame, self.view)
         for control in self._controls:
             control.render(frame)

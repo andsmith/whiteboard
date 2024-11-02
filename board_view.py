@@ -25,6 +25,7 @@ class BoardView(object):
         # bounding box of this view within the board, in board coords.
         self.board_bbox = {'x': (origin[0], origin[0] + size[0] / zoom),
                            'y': (origin[1], origin[1] + size[1] / zoom)}
+        print(f"BoardView: {self.board_bbox}")
 
     def __hash__(self) -> int:
         return hash((self.origin, self.zoom, self.size))
@@ -74,6 +75,44 @@ class BoardView(object):
         :param bbox: {'x': (x_min, x_max), 'y': (y_min, y_max)} in board coords.
         """
         return bboxes_intersect(self.board_bbox, bbox)
+
+    def render_grid(self, img, line_color_v, bkg_color_v):
+        """
+        Given the current view, render the grid.
+        For now, faint lines at ever 10 units, and heavy lines at every 100.
+        TODO:  Make this autoscale
+        """
+        x_min, x_max = self.board_bbox['x']
+        y_min, y_max = self.board_bbox['y']
+
+        x_min = int(np.floor(x_min / 10) * 10)
+        y_min = int(np.floor(y_min / 10) * 10)
+        x_max = int(np.ceil(x_max / 10) * 10)
+        y_max = int(np.ceil(y_max / 10) * 10)
+
+        grid_color = (0, 0, 0)
+        # faint lines
+        t = 0.5
+        heavy_color = line_color_v
+        faint_color = np.uint8(np.array(line_color_v) * t + np.array(bkg_color_v) * (1 - t)).tolist()
+
+        for x in range(x_min, x_max + 1, 10):
+            x_px = self.pts_to_pixels((x, 0))[0].astype(np.int32)
+            cv2.line(img, (x_px, 0), (x_px, img.shape[0]), faint_color, 1)
+        for y in range(y_min, y_max + 1, 10):
+            y_px = self.pts_to_pixels((0, y))[1].astype(np.int32)
+            cv2.line(img, (0, y_px), (img.shape[1], y_px), faint_color, 1)
+        # heavy lines
+        for x in range(x_min, x_max + 1, 100):
+            x_px = self.pts_to_pixels((x, 0))[0].astype(np.int32)
+            cv2.line(img, (x_px, 0), (x_px, img.shape[0]), heavy_color, 2)
+        for y in range(y_min, y_max + 1, 100):
+            y_px = self.pts_to_pixels((0, y))[1].astype(np.int32)
+            cv2.line(img, (0, y_px), (img.shape[1], y_px), heavy_color, 2)
+
+        # if (0, 0) is in view, plot a big dot.
+        if in_bbox( self.board_bbox, (0,0)):
+            cv2.circle(img, self.pts_to_pixels((0, 0)).astype(np.int32), 10, grid_color, -1)
 
 
 def get_board_view(name, points, win_size, margin=0.05):

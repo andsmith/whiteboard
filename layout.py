@@ -29,13 +29,13 @@ COLORS_BGR = {k: tuple(reversed(v)) for k, v in COLORS_RGB.items()}
 DEFAULT_ICON_MARGIN_FRAC = 0.35
 
 UI_LINE_THICKNESS = 2
-
+INIT_OPTIONS = {'show_grid': True}
 # Board is the main display window
 BOARD_LAYOUT = {'win_size': (1200, 800),
                 'win_name': 'Whiteboard Board',
                 'bkg_color': 'off_white',  # shared w/control win
                 'obj_color': 'dark_dark_gray',  # also shared
-                'init_zoom': 1.0,
+                'init_zoom': 2.0,
                 'init_origin': (0, 0),
                 'init_zoom_window_extent': {'x': (0.05, 0.5),  # upper left corner
                                             'y': (0.05, 0.5)},

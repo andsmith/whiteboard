@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from layout import COLORS_RGB, SLIDERS, CONTROL_LAYOUT, BOARD_LAYOUT, VECTOR_DEF, EMPTY_BBOX
+from layout import COLORS_RGB, SLIDERS, CONTROL_LAYOUT, BOARD_LAYOUT, VECTOR_DEF, EMPTY_BBOX, INIT_OPTIONS
 import logging
 from windows import UIWindow
 import time
@@ -34,7 +34,7 @@ class WhiteboardApp(object):
         # self._windows['control'].add_control(self._zoom_controllers['control'])
         # self._windows['board'].add_control(self._zoom_controllers['board'])
 
-        self._options = {'show_grid': True}
+        self._options = {'show_grid': INIT_OPTIONS['show_grid']}
 
     def get_option(self, option_name):
         return self._options[option_name]
@@ -70,6 +70,7 @@ class WhiteboardApp(object):
                               ctrl_win_size,
                               BOARD_LAYOUT['init_origin'],
                               BOARD_LAYOUT['init_zoom'] * 2)
+        
         return {'control': ctrl_view, 'board': board_view}, \
             {'control': None, 'board': None}
 
@@ -105,7 +106,9 @@ class WhiteboardApp(object):
         command_name_grid = CONTROL_LAYOUT['command_box']['options']  
         command_buttons = {'undo': ArtistButton(cw, 'undo', EMPTY_BBOX, callbacks=(self.undo,), states=(False, )),
                            'redo': ArtistButton(cw, 'redo', EMPTY_BBOX, callbacks=(self.redo,), states=(False, )),
-                           'grid': ArtistButton(cw, 'grid', EMPTY_BBOX, callbacks=(lambda *_: self.toggle_option('show_grid'),))}
+                           'grid': ArtistButton(cw, 'grid', EMPTY_BBOX, 
+                                                callbacks=(lambda *_: self.toggle_option('show_grid'),),
+                                                 states = (True, False) if INIT_OPTIONS['show_grid'] else (False, True)),}
         command_buttons = [[command_buttons[command_name] if command_name is not None else None
                             for command_name in row]
                            for row in command_name_grid]
@@ -160,8 +163,10 @@ class WhiteboardApp(object):
         while True:
 
             # Redraw windows:
-            for win_name in self._windows:
-                self._windows[win_name].refresh()
+            #for win_name in self._windows:
+            #    self._windows[win_name].refresh()
+            self._windows['control'].refresh(options=dict(show_grid=self.get_option('show_grid')))
+            self._windows['board'].refresh(options=dict(show_grid=self.get_option('show_grid')))
 
             # Flush to screen & handle keypresses:
             key = cv2.waitKey(1) & 0xFF
