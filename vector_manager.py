@@ -22,7 +22,6 @@ class VectorManager(object):
         self._deleted = []  # list of deleted vectors (current stored in self._vectors)
         self._types = {cls.__name__: cls for cls in VECTORS}
 
-
     def save(self, filename):
 
         def _serialize(vector):
@@ -32,7 +31,6 @@ class VectorManager(object):
 
         vectors = [_serialize(vector) for vector in self._vectors]
         deleted = [_serialize(vector) for vector in self._deleted]
-
 
         with open(filename, 'w') as f:
             json.dump([vectors, deleted], f)
@@ -47,8 +45,7 @@ class VectorManager(object):
             vectors, deleted = json.load(f)
 
         self._vectors = [_deserialize(vector) for vector in vectors]
-        self._deleted =[_deserialize(vector) for vector in deleted]
-
+        self._deleted = [_deserialize(vector) for vector in deleted]
 
     def get_vectors_in(self, bbox):
         """
@@ -65,6 +62,7 @@ class VectorManager(object):
 
     def finish_vector(self):
         self._vectors.append(self._vec_in_progress)
+        self._vec_in_progress = None
 
     def cancel_vector(self):
         self._vec_in_progress = None
@@ -73,12 +71,16 @@ class VectorManager(object):
         self._deleted.append(vector)
         self._vectors.remove(vector)
 
+    def clear(self, *args):
+        self._vectors = []
+        print("clearing vectors, TODO:  move them to the redo stack ")
+
     def undo_delete(self):
         if self._deleted:
             self._vectors.append(self._deleted.pop())
 
     def render(self, img, view):
-        #print("Rendering %i vectors" % len(self._vectors))
+        # print("Rendering %i vectors" % len(self._vectors))
         for vector in self._vectors:
             vector.render(img, view)
 

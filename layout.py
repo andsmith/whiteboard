@@ -73,7 +73,7 @@ CONTROL_LAYOUT = {
     'command_box': {'loc': {'x': [.15, .45],
                             'y': [.85, .95]},
                     # Should match something in icon_artists
-                    'options': [['undo', 'redo', None, None, 'snap_to_grid', 'grid'],]},
+                    'options': [['undo', 'redo', 'clear', None,'snap_to_grid', 'grid'],]},
 
 
     # zoom slider-bar, horizontal, accros bottom.

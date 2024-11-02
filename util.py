@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 
+
 def corners_from_bbox(bbox):
     """
     :param bbox:  dict(x=(x_min, x_max), y=(y_min, y_max))
@@ -13,6 +14,7 @@ def corners_from_bbox(bbox):
                      (x_max, y_max),
                      (x_min, y_max)])
 
+
 def move_bbox_to(bbox, xy):
     """
     Translate the bbox.
@@ -20,6 +22,7 @@ def move_bbox_to(bbox, xy):
     w, h = bbox['x'][1] - bbox['x'][0], bbox['y'][1] - bbox['y'][0]
     return {'x': (xy[0], xy[0] + w),
             'y': (xy[1], xy[1] + h)}
+
 
 def unit_to_abs_bbox(unit_bbox, win_size):
     """
@@ -66,6 +69,7 @@ def is_numeric(items):
     except ValueError:
         return False
     return True
+
 
 def interp_colors(color1, color2, frac):
     """
@@ -125,8 +129,33 @@ def get_circle_points(center, radius, num_points=100):
     y = center[1] + radius * np.sin(theta)
     return np.array([x, y]).T
 
+
+def get_text_cursor_points(center, height, tail_scale=.15, num_points=25):
+    """
+    Return a classic text cursor shape.
+    :param center: (x, y)
+    :param height: height of the cursor
+    :param tail_scale: length of curved portions wrt the middle stem.
+    """
+    stem_height = height * (1.0 - tail_scale)
+    tail_height = height * tail_scale
+    circle_points = get_circle_points(center, tail_height, num_points*4)
+    quadrants = {'ur': circle_points[:num_points][::-1],  # reverse to end at the vertical part
+                 'ul': circle_points[num_points:2*num_points],
+                 'll': circle_points[2*num_points:3*num_points],
+                 'lr': circle_points[3*num_points:][::-1]}
+    cursor_left = np.vstack((quadrants['ur'] + np.array((-tail_height, stem_height/2)),
+                             quadrants['lr'] + np.array((-tail_height, -stem_height/2)) ))
+    cursor_right = np.vstack((quadrants['ul'] + np.array((tail_height, stem_height/2)),
+                                quadrants['ll'] + np.array((tail_height, -stem_height/2)) ))
+
+    return [cursor_left, cursor_right]
+
+
 PREC_BITS = 7  # number of bits to use for precision in fixed-point numbers
 PREC_SCALE = 2 ** PREC_BITS  # for cv2 draw commands
+
+
 def floats_to_fixed(points):
     """
     Convert an array of floats to fixed-point numbers.
@@ -156,5 +185,18 @@ def scale_points_to_bbox(unit_points, bbox, margin_frac=0.0):
     x_scale = x_max - x_min
     y_scale = y_max - y_min
     return np.array([(x_min + x * x_scale,
-                                      y_min + y * y_scale)
-                                     for x, y in unit_points])
+                      y_min + y * y_scale)
+                     for x, y in unit_points])
+
+def test_cursor():
+    import matplotlib.pyplot as plt
+    cursor_points = get_text_cursor_points((0, 0), 100, tail_scale=.2)
+    for points in cursor_points:
+        plt.plot(points[:, 0], points[:, 1])
+    plt.gca().set_aspect('equal')
+    plt.show()
+
+
+
+if __name__=="__main__":
+    test_cursor()

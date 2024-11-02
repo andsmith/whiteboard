@@ -110,7 +110,8 @@ class WhiteboardApp(object):
                                                 states=(True, False) if INIT_OPTIONS['show_grid'] else (False, True)),
                            'snap_to_grid': ArtistButton(cw, 'snap_to_grid', EMPTY_BBOX,
                                                         callbacks=(lambda *_: self.toggle_option('snap_to_grid'),),
-                                                        states=(True, False) if INIT_OPTIONS['snap_to_grid'] else (False, True)), }
+                                                        states=(True, False) if INIT_OPTIONS['snap_to_grid'] else (False, True)),
+                           'clear': ArtistButton(cw, 'clear', EMPTY_BBOX, callbacks=(self._vector_manager.clear,), states=(False, )), }
         command_buttons = [[command_buttons[command_name] if command_name is not None else None
                             for command_name in row]
                            for row in command_name_grid]
