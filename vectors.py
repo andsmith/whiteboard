@@ -135,6 +135,8 @@ class CircleVec(LineVec):
         self._draw_pts = None
 
     def _calc(self, view):
+        if len(self._points) < 2:
+            return
         center =np.array(self._points[0])
         radius = np.linalg.norm(np.array(self._points[1]) - center)
         circle_pts = get_circle_points(center, radius)
@@ -142,11 +144,13 @@ class CircleVec(LineVec):
 
     _NAME = 'circle'
     def render(self, img, view):
+        
         if view.sees_bbox(self._bbox):
             if self._last_view is None or view != self._last_view:
                 self._calc(view)
                 self._last_view = view
-            cv2.polylines(img, self._draw_pts, True, self._color, self._thickness, lineType=cv2.LINE_AA, shift=PREC_BITS)
+            if self._draw_pts is not None:
+                cv2.polylines(img, self._draw_pts, True, self._color, self._thickness, lineType=cv2.LINE_AA, shift=PREC_BITS)
 
 
 class RectangleVec(CircleVec):
@@ -155,6 +159,8 @@ class RectangleVec(CircleVec):
     """
     _NAME = 'rectangle'
     def _calc(self, view):
+        if len(self._points) < 2:
+            return
         x1, y1 = self._points[0]
         x2, y2 = self._points[1]
         x = [x1, x2, x2, x1, x1]
