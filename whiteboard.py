@@ -90,7 +90,7 @@ class WhiteboardApp(object):
 
         # zoom slider
         zoom_slider_box = unit_to_abs_bbox(CONTROL_LAYOUT['zoom_slider']['loc'], ctrl_win_size)
-        zoom_slider = Slider(cw, zoom_slider_box, 'control_zoom_slider',
+        zoom_slider = Slider(cw, zoom_slider_box, 'control_zoom_slider', label_str=CONTROL_LAYOUT['zoom_slider']['label'],
                              orientation=CONTROL_LAYOUT['zoom_slider']['loc']['orientation'],
                              values=[-10, 10], init_pos=0.5)
 
@@ -113,7 +113,7 @@ class WhiteboardApp(object):
 
         # zoom slider
         zoom_slider_box = unit_to_abs_bbox(BOARD_LAYOUT['zoom_bar']['loc'], board_win_size)
-        zoom_slider = Slider(bw, zoom_slider_box, 'board_zoom_slider',
+        zoom_slider = Slider(bw, zoom_slider_box, 'board_zoom_slider', label_str=BOARD_LAYOUT['zoom_bar']['label'],
                              orientation=BOARD_LAYOUT['zoom_bar']['loc']['orientation'],
                              values=[-10, 10], init_pos=0.5)
         bw.add_control(zoom_slider)

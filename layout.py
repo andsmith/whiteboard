@@ -41,7 +41,8 @@ BOARD_LAYOUT = {'win_size': (1200, 800),
                                             'y': (0.05, 0.5)},
                 'zoom_bar': {'loc': {'x': [.85, .95],
                                      'y': [.05, .475],
-                                     'orientation': 'vertical'}, }, }
+                                     'orientation': 'vertical'},
+                             'label': "Zoom %.1f"}, }
 
 # Control is the user input window, with the tools and the precise drawing window
 CONTROL_LAYOUT = {
@@ -63,13 +64,14 @@ CONTROL_LAYOUT = {
                               ['blue', 'yellow'],
                               ['purple', 'green']]},
 
-    # command box (undo/redo, clear, grid, connect, etc.) is 
+    # command box (undo/redo, clear, grid, connect, etc.) is
 
 
     # zoom slider-bar, horizontal, accros bottom.
     'zoom_slider': {'loc': {'x': [.5, .95],
                             'y': [.85, .95],
-                            'orientation': 'horizontal'}, },
+                            'orientation': 'horizontal'},
+                    'label': 'Zoom: %.1f'},
 }
 
 VECTOR_DEF = {'ctrl_pts': {'color': 'neon green',

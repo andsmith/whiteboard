@@ -12,21 +12,21 @@ from gui_components import MouseReturnStates
 
 
 class Slider(Control):
-    def __init__(self, board, bbox, label, orientation='horizontal', values=[1.0, 10.], interpolate=True, init_pos=0.5, visible=True, show_bbox=False):
+    def __init__(self, board, bbox, name, orientation='horizontal', values=[1.0, 10.], label_str="%s", interpolate=True, init_pos=0.5, visible=True, show_bbox=False):
         """
         :param board: Board object
         :param bbox: {'x': (x_min, x_max), 'y': (y_min, y_max)}
-        :param label: str, label to display next to the slider
+        :param name: widget name
         :param orientation: str, 'horizontal' or 'vertical'
         :param values: list of values to choose from, left to right or top to bottom.
             The elments of this list are spaced evenly along the length of the slider, and:
                - if they are numeric and interpolate is True, the returned value is interpolated based on slider position, or
                - else, the closest value is returned.
+        :param label_str: str, label format string, e.g. "Threshold: %s"
         :param interpolate: bool, if True, interpolate between values based on slider position, else use the closest value.
         :param init_pos: float, initial position of the slider, reletive to endpoints.
         """
-        logging.info("Creating %s slider '%s' in bbox %s." % (orientation, label, bbox))
-        self._label = label
+        self._label = label_str
         self._show_bbox = show_bbox
         self._orientation = orientation
         self._values = values
@@ -44,10 +44,14 @@ class Slider(Control):
         self._tab_color = COLORS_RGB[SLIDERS['tab_color']]
         self._label_color = COLORS_RGB[SLIDERS['label_color']]
 
-        super().__init__(board, label, bbox, visible)
+        super().__init__(board, name, bbox, visible)
+        logging.info("Created %s slider '%s' in bbox %s, will display like:  %s." % (orientation, name, bbox, self._get_disp_str()))
 
         # calls self._set_geom()
-
+    def _get_disp_str(self,val=None):
+        val = val if val is not None else self.get_value()
+        return self._label % val
+    
     def _set_geom(self):
 
         # define absolute geometry (WRT window pixels) from relative in layout.py:
@@ -123,7 +127,7 @@ class Slider(Control):
         tab_p2 = (int(tab_pos['x'][1]), int(tab_pos['y'][1]))
         cv2.rectangle(img, tab_p1, tab_p2, self._tab_color, -1)
         # draw label
-        label = self.get_value()[1]
+        label = self._get_disp_str()
         (width, height), _ = cv2.getTextSize(label, self._label_font, self._font_scale, self._font_thickness)
 
         if self._orientation == 'horizontal':
@@ -167,8 +171,7 @@ class Slider(Control):
         else:
             val = self._values[int(np.round(rel_val * (len(self._values) - 1)))]
             string = str(val)
-        string = "%s: %s" % (self._label, string)
-        return val, string
+        return val
 
     def _get_max_label_dims(self):
         """
@@ -176,7 +179,7 @@ class Slider(Control):
         """
         max_width, max_height = 0, 0
         for i in range(1000):
-            label = self.get_value(np.random.rand())[1]
+            label = self._get_disp_str(val=self.get_value(rel_val=np.random.rand()))
             (width, height), _ = cv2.getTextSize(label, self._label_font, self._font_scale, self._font_thickness)
             max_width = max(max_width, width)
             max_height = max(max_height, height)
