@@ -31,11 +31,11 @@ DEFAULT_ICON_MARGIN_FRAC = 0.35
 UI_LINE_THICKNESS = 2
 INIT_OPTIONS = {'show_grid': True}
 # Board is the main display window
-BOARD_LAYOUT = {'win_size': (1200, 800),
+BOARD_LAYOUT = {'win_size': (1000, 500),
                 'win_name': 'Whiteboard Board',
                 'bkg_color': 'off_white',  # shared w/control win
                 'obj_color': 'dark_dark_gray',  # also shared
-                'init_zoom': 2.0,
+                'init_zoom': 1.0,
                 'init_origin': (-15, -15),
                 'init_zoom_window_extent': {'x': (0.05, 0.5),  # upper left corner
                                             'y': (0.05, 0.5)},
@@ -47,7 +47,7 @@ BOARD_LAYOUT = {'win_size': (1200, 800),
 # Control is the user input window, with the tools and the precise drawing window
 CONTROL_LAYOUT = {
     'win_name': 'Whiteboard Controls',
-    'win_size': (800, 500),
+    'win_size': (500, 300),
     'zoom_window_margin': 0.1,  # fraction of window size, set zoom to whatever fits the current zoom_window_extent.
 
     # toolbox, strip in the middle of the right side of the window

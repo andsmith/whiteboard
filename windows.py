@@ -65,6 +65,9 @@ class UIWindow(object):
         self.view = self._old_view.pan(rel_xy)
         print(f"Panning to {xy}")
 
+    def set_zoom(self, zoom):
+        self.view.set_zoom(zoom)
+
     def add_control(self, control):
         self._controls.append(control)
 

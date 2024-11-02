@@ -11,8 +11,40 @@ from controls import Control
 from gui_components import MouseReturnStates
 
 
+def value_from_position(values, position, interpolate=True):
+    """
+    :param values: list of values to choose from, left to right or top to bottom.
+    :param position: float in [0, 1], position of the slider tab.
+    :param interpolate: bool, if True, interpolate between values based on slider position, else use the closest value.
+    :returns: value (interpolated/selected value)
+    """
+    if interpolate:
+        value_x = np.linspace(0, 1, len(values))
+        val = np.interp(position, value_x, values)
+    else:
+        val = values[int(np.round(position * (len(values) - 1)))]
+    return val
+
+def position_from_value(values, value, interpolate=True):
+    """
+    :param values: list of values to choose from, left to right or top to bottom.
+    :param value: float, value to find on the slider.
+    :param interpolate: bool, if True, interpolate between values based on slider position, else use the closest value.
+    :returns: position (float in [0, 1], position of the slider tab.
+    """
+    if interpolate:
+        value_x = np.linspace(0, 1, len(values))
+        position = np.interp(value, values, value_x)
+    else:
+        position = values.index(value) / (len(values) - 1)
+    return position
+
+
+
+
 class Slider(Control):
-    def __init__(self, board, bbox, name, orientation='horizontal', values=[1.0, 10.], label_str="%s", interpolate=True, init_pos=0.5, visible=True, show_bbox=False):
+    def __init__(self, board, bbox, name, orientation='horizontal', values=[1.0, 10.], label_str="%s",
+                  interpolate=True, init_val=0.5, visible=True, show_bbox=False, valchange_callbacks=()):
         """
         :param board: Board object
         :param bbox: {'x': (x_min, x_max), 'y': (y_min, y_max)}
@@ -26,6 +58,7 @@ class Slider(Control):
         :param interpolate: bool, if True, interpolate between values based on slider position, else use the closest value.
         :param init_pos: float, initial position of the slider, reletive to endpoints.
         """
+        self._callbacks = valchange_callbacks
         self._label = label_str
         self._show_bbox = show_bbox
         self._orientation = orientation
@@ -36,7 +69,7 @@ class Slider(Control):
             self._interpolate = False
 
         # state
-        self._cur_value_rel = init_pos  # stores current position of slider tab
+        self._cur_value_rel = position_from_value(values,init_val)  # stores current position of slider tab
         self._obj_color_v = COLORS_RGB[SLIDERS['line_color']]
         self._line_thickness = SLIDERS['line_thickness']
         self._label_font = SLIDERS['label_font']
@@ -140,7 +173,6 @@ class Slider(Control):
                     lineType=cv2.LINE_AA)
 
         if self._show_bbox:
-            print("BBOX", self.name)
             draw_bbox(img, self._bbox, self._obj_color_v, 1)
 
     def _click_to_rel_value(self, xy_px):
@@ -165,14 +197,7 @@ class Slider(Control):
                   character representation of value
         """
         rel_val = self._cur_value_rel if rel_val is None else rel_val
-        if self._interpolate:
-            value_x = np.linspace(0, 1, len(self._values))
-            val = np.interp(rel_val, value_x, self._values)
-            string = "%.3f" % val
-        else:
-            val = self._values[int(np.round(rel_val * (len(self._values) - 1)))]
-            string = str(val)
-        return val
+        return value_from_position(self._values, rel_val, self._interpolate)
 
     def _get_max_label_dims(self):
         """
@@ -188,6 +213,7 @@ class Slider(Control):
 
     def mouse_down(self, xy):
         self._cur_value_rel = self._click_to_rel_value(xy)
+        self._do_callbacks()
         return self._capture_mouse()
 
     def mouse_up(self, xy):
@@ -195,4 +221,14 @@ class Slider(Control):
 
     def mouse_move(self, xy):
         self._cur_value_rel = self._click_to_rel_value(xy)
+        self._do_callbacks()
         return MouseReturnStates.captured
+
+    def _do_callbacks(self):
+        val = self.get_value()
+
+        for callback in self._callbacks:
+
+            callback(val)
+
+

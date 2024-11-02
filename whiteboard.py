@@ -65,7 +65,7 @@ class WhiteboardApp(object):
                                BOARD_LAYOUT['init_origin'],
                                BOARD_LAYOUT['init_zoom'])
 
-        # For now, just scale 2x
+        # For now, just scale 2x  ###FIXME
         ctrl_view = BoardView('control',
                               ctrl_win_size,
                               BOARD_LAYOUT['init_origin'],
@@ -99,7 +99,6 @@ class WhiteboardApp(object):
                         for row in tool_name_grid]
 
         tool_button_box = unit_to_abs_bbox(CONTROL_LAYOUT['tool_box']['loc'], ctrl_win_size)
-        print("Tools    ", tool_button_box)
         tool_control = ButtonBox(cw, 'tool_button_box', tool_button_box, tool_buttons, exclusive=True)
 
         # command buttons
@@ -119,7 +118,7 @@ class WhiteboardApp(object):
         zoom_slider_box = unit_to_abs_bbox(CONTROL_LAYOUT['zoom_slider']['loc'], ctrl_win_size)
         zoom_slider = Slider(cw, zoom_slider_box, 'control_zoom_slider', label_str=CONTROL_LAYOUT['zoom_slider']['label'],
                              orientation=CONTROL_LAYOUT['zoom_slider']['loc']['orientation'],
-                             values=[-10, 10], init_pos=0.5, show_bbox=False)
+                             values=[.1, 20], init_val=view.get_scope()[0], show_bbox=False, valchange_callbacks=(cw.set_zoom,))
 
         # add controls to window
         cw.add_control(color_control)
@@ -150,7 +149,7 @@ class WhiteboardApp(object):
         zoom_slider_box = unit_to_abs_bbox(BOARD_LAYOUT['zoom_bar']['loc'], board_win_size)
         zoom_slider = Slider(bw, zoom_slider_box, 'board_zoom_slider', label_str=BOARD_LAYOUT['zoom_bar']['label'],
                              orientation=BOARD_LAYOUT['zoom_bar']['loc']['orientation'],
-                             values=[-10, 10], init_pos=0.5)
+                             values=[1, 20], init_val=view.get_scope()[0], show_bbox=False, valchange_callbacks=(bw.set_zoom,))
         bw.add_control(zoom_slider)
         return bw
 
