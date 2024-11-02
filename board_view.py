@@ -108,7 +108,7 @@ class BoardView(object):
             for y in range(y_min, y_max + 1, spacing):
                 y_px = self.pts_to_pixels((0, y))[1].astype(np.int32)
                 cv2.line(img, (0, y_px), (img.shape[1], y_px), color, 1)
-        if self._zoom > 1:
+        if self._zoom >= 1:
             _draw_grid(10, interp_colors(bkg_color_v, line_color_v, 0.2))
         _draw_grid(100, interp_colors(bkg_color_v, line_color_v, .4))
 
