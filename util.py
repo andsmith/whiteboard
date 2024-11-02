@@ -78,7 +78,7 @@ def draw_bbox(img, bbox, color, thickness):
     """
     x_min, x_max = bbox['x']
     y_min, y_max = bbox['y']
-    cv2.rectangle(img, (x_min, y_min), (x_max, y_max), color, thickness)
+    cv2.rectangle(img, (x_min, y_min), (x_max, y_max), color, thickness, lineType=cv2.LINE_AA)
 
 
 def get_bbox(points):

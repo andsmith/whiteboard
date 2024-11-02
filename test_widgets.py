@@ -20,6 +20,9 @@ class FakeToolManager(object):
     def switch_tool(self, tool):
         logging.info("Setting tool to %s" % tool)
 
+    def get_color_thickness(self):
+        return 'orange', 3
+
 
 class ControlTester(object):
 
@@ -88,14 +91,14 @@ def test_widgets():
 
     # sliders
     s1 = {'bbox': {'x': (10, 110 + width), 'y': (150, 150 + length)},
-          'label': 'Vertical',
+          'name': 'Vertical',
           'orientation': 'vertical',
           'values': [1, 100],
           'visible': True,
           'interpolate': True,
           'init_pos': 0.5}
     s2 = {'bbox': {'x': (150, 150 + length), 'y': (100, 100 + width)},
-          'label': 'Horizontal',
+          'name': 'Horizontal',
           'visible': True,
           'orientation': 'horizontal',
           'values': ['a', 'b', 'c', 'd', 'e'],

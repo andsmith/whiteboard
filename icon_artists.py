@@ -168,12 +168,14 @@ class UndoRedoIcon(IconArtist):
                      (0.333, 0.8)]
         arrow_rel = np.array(arrow_rel, dtype=np.float64)
         arrow_rel[:,0]+=.05 
-        print(self.name, self._direction)
         if self._direction == -1:
             arrow_rel[:,0] = 1.0 - arrow_rel[:,0]
-        print(arrow_rel)
         arrow = scale_points_to_bbox(np.array(arrow_rel, dtype=np.float64), self._bbox, margin_frac=self._margin_frac)
         self._lines = [floats_to_fixed(arrow)]
+
+    def render(self, img):
+        self.color_v = self._obj_color_v  # don't change color
+        super().render(img)
 
 class UndoIcon(UndoRedoIcon):
     def __init__(self, board, bbox, margin_frac=None):

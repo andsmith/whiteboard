@@ -67,12 +67,12 @@ CONTROL_LAYOUT = {
     # command box (undo/redo, clear, grid, connect, etc.) is at the bottom left, next to the zoom slider
     'command_box': {'loc': {'x': [.15, .45],
                             'y': [.85, .95]},
-                    'options': [['undo',None, None, None, None, 'grid'],]},
+                    'options': [['undo','redo', None, None, None, 'grid'],]},
 
 
     # zoom slider-bar, horizontal, accros bottom.
     'zoom_slider': {'loc': {'x': [.55, .85],
-                            'y': [.85, .85],
+                            'y': [.85, .95],
                             'orientation': 'horizontal'},
                     'label': 'Zoom: %.1f'},
 }
@@ -82,7 +82,7 @@ VECTOR_DEF = {'ctrl_pts': {'color': 'neon green',
                            'max_click_dist': 10  # max distance from ctrl pt to select it
                            }}
 
-SLIDERS = {'indent': .05,  # fraction of bounding box length (right margin determined by label length)
+SLIDERS = {'indent': .02,  # fraction of bounding box length (right margin determined by label length)
            'line_thickness': 2,  # fraction of bounding box width
            'line_width': 0.1,  # fraction of bounding box width
            'tab_width': 0.01,  # fraction of bounding box length

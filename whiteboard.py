@@ -110,13 +110,13 @@ class WhiteboardApp(object):
                             for command_name in row]
                            for row in command_name_grid]
         command_button_bbox = unit_to_abs_bbox(CONTROL_LAYOUT['command_box']['loc'], ctrl_win_size)
-        command_control = ButtonBox(cw, 'command_button_box', command_button_bbox, command_buttons, exclusive=False)
+        command_control = ButtonBox(cw, 'command_button_box', command_button_bbox, command_buttons, exclusive=False, show_bbox=False)
 
         # zoom slider
         zoom_slider_box = unit_to_abs_bbox(CONTROL_LAYOUT['zoom_slider']['loc'], ctrl_win_size)
         zoom_slider = Slider(cw, zoom_slider_box, 'control_zoom_slider', label_str=CONTROL_LAYOUT['zoom_slider']['label'],
                              orientation=CONTROL_LAYOUT['zoom_slider']['loc']['orientation'],
-                             values=[-10, 10], init_pos=0.5, show_bbox=True)
+                             values=[-10, 10], init_pos=0.5, show_bbox=False)
 
         # add controls to window
         cw.add_control(color_control)

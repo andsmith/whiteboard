@@ -140,6 +140,7 @@ class Slider(Control):
                     lineType=cv2.LINE_AA)
 
         if self._show_bbox:
+            print("BBOX", self.name)
             draw_bbox(img, self._bbox, self._obj_color_v, 1)
 
     def _click_to_rel_value(self, xy_px):
