@@ -106,17 +106,54 @@ class CircleToolIcon(IconArtist):
         self._ctrl_points = [points[0], self._center]
 
 
-class GridIcon(CircleToolIcon):
+class SnapToGridIcon(CircleToolIcon):
+
     """
-    Icon that turns off/on the background grid.
-    (Should be a small grid, clipped to within a cirlce)
-    """
+    3x3 grid of lines, with a heavy line from (2,)"""
 
     def __init__(self, board, bbox, margin_frac=None):
         self._heavy_lines = []
         self._faint_lines = []
         super().__init__(board, bbox, margin_frac)
-        self._faint_color = ((0.5) * np.array(self._obj_color_v) + (0.5) * np.array(self._bkg_color_v)).tolist()
+        faintness = 0.4
+        self._faint_color = (faintness * np.array(self._obj_color_v) +
+                             (1.0-faintness) * np.array(self._bkg_color_v)).tolist()
+
+    def _set_geom(self):
+        n_lines = 6
+        x_grid, y_grid = np.linspace(0., 1., n_lines), np.linspace(0., 1., n_lines)
+
+        vertical_lines = [np.array(((x, 0), (x, 1))) for x in x_grid]
+        horizontal_lines = [np.array(((0, y), (1, y))) for y in y_grid]
+        self._ctrl_points = scale_points_to_bbox(np.array([(x_grid[2], y_grid[1]),
+                                                           (x_grid[4], y_grid[4]),
+                                                           (x_grid[4], y_grid[1]),
+                                                           (x_grid[1], y_grid[4]),
+                                                           (x_grid[4], y_grid[4])]), self._bbox, margin_frac=self._margin_frac)
+
+        ctrl_lines = [np.array((self._ctrl_points[i], self._ctrl_points[i+1])) for i in range(len(self._ctrl_points)-1)]
+
+        self._heavy_lines = [floats_to_fixed(line) for line in ctrl_lines]
+        self._faint_lines = [floats_to_fixed(scale_points_to_bbox(line,
+                                                                  self._bbox,
+                                                                  margin_frac=self._margin_frac))
+                             for line in vertical_lines[1:-1] + horizontal_lines[1:-1]]
+
+    def render(self, img):
+        cv2.polylines(img, self._faint_lines, False, self._faint_color,
+                      lineType=cv2.LINE_AA, thickness=1, shift=PREC_BITS)
+        cv2.polylines(img, self._heavy_lines, False, self._obj_color_v,
+                      lineType=cv2.LINE_AA, thickness=1, shift=PREC_BITS)
+        # print(np.mean(self._heavy_lines[0], axis=0)), np.mean(self._faint_lines[0], axis=0)
+        for ctrl_point in self._ctrl_points:
+            self._draw_ctrl_point(img, ctrl_point)  # for subclass
+
+
+class GridIcon(SnapToGridIcon):
+    """
+    Icon that turns off/on the background grid.
+    (Should be a small grid, clipped to within a cirlce)
+    """
 
     def _set_geom(self):
         self._ctrl_points = []  # none of these to draw
@@ -142,11 +179,38 @@ class GridIcon(CircleToolIcon):
         self._heavy_lines = [floats_to_fixed(np.array(line, dtype=np.float64)) for line in heavy_lines]
         self._faint_lines = [floats_to_fixed(np.array(line, dtype=np.float64)) for line in faint_lines]
 
-    def render(self, img):
-        for line in self._heavy_lines:
-            cv2.polylines(img, [line], False, self._obj_color_v, lineType=cv2.LINE_AA, thickness=1, shift=PREC_BITS)
-        for line in self._faint_lines:
-            cv2.polylines(img, [line], False, self._faint_color, lineType=cv2.LINE_AA, thickness=1, shift=PREC_BITS)
+
+class ClearIcon(SnapToGridIcon):
+    """
+    A rectangular "window" with a big X in it.
+    """
+    def _correct_lines(self, lines):
+        lines  = scale_points_to_bbox(np.array(lines, dtype=np.float64), self._bbox, margin_frac=self._margin_frac)
+        return floats_to_fixed(lines)
+    
+    def _set_geom(self):
+        self._ctrl_points = []  # none of these to draw
+        window_height = .7
+        window_width = 0.9
+        title_bar_thickness = .05
+        x_margin = 0.09
+        v_pad = (1 - window_height) / 2
+        h_pad = (1 - window_width) / 2
+        window = [[h_pad, 1.0 - v_pad],
+                  [1.0-h_pad, 1.0 - v_pad],
+                  [1.0-h_pad, v_pad],
+                  [h_pad, v_pad],
+                  [h_pad, 1.0 - v_pad]]
+        title_bar = [[h_pad, 1.0 - v_pad+title_bar_thickness],
+                     [1.0-h_pad, 1.0 - v_pad+title_bar_thickness]]
+        x_lines = [[[h_pad + x_margin, 1.0 - v_pad - title_bar_thickness],
+                   [1.0-h_pad - x_margin, v_pad + title_bar_thickness],]
+                  [ [1.0-h_pad - x_margin, 1.0 - v_pad - title_bar_thickness],
+                   [h_pad + x_margin, v_pad + title_bar_thickness]]]
+        
+        window_lines = self._correct_lines(window) + self._correct_lines(title_bar) + self._correct_lines(x_lines)
+        self._heavy_lines = window_lines
+
 
 
 class UndoRedoIcon(IconArtist):
@@ -160,16 +224,16 @@ class UndoRedoIcon(IconArtist):
 
     def _set_geom(self):
         arrow_rel = [(0.0, 0.5),  # tip
-                     (0.333, 0.2 ), # upper corner
-                     (0.333, 0.4), # upper stem corner
-                     (.9, 0.4), # upper stem end
-                     (.9, 0.6), # lower stem end
-                     (0.333, 0.6), # lower stem corner
+                     (0.333, 0.2),  # upper corner
+                     (0.333, 0.4),  # upper stem corner
+                     (.9, 0.4),  # upper stem end
+                     (.9, 0.6),  # lower stem end
+                     (0.333, 0.6),  # lower stem corner
                      (0.333, 0.8)]
         arrow_rel = np.array(arrow_rel, dtype=np.float64)
-        arrow_rel[:,0]+=.05 
+        arrow_rel[:, 0] += .05
         if self._direction == -1:
-            arrow_rel[:,0] = 1.0 - arrow_rel[:,0]
+            arrow_rel[:, 0] = 1.0 - arrow_rel[:, 0]
         arrow = scale_points_to_bbox(np.array(arrow_rel, dtype=np.float64), self._bbox, margin_frac=self._margin_frac)
         self._lines = [floats_to_fixed(arrow)]
 
@@ -177,14 +241,15 @@ class UndoRedoIcon(IconArtist):
         self.color_v = self._obj_color_v  # don't change color
         super().render(img)
 
+
 class UndoIcon(UndoRedoIcon):
     def __init__(self, board, bbox, margin_frac=None):
         super().__init__(board, bbox, direction=1, margin_frac=margin_frac)
 
+
 class RedoIcon(UndoRedoIcon):
     def __init__(self, board, bbox, margin_frac=None):
         super().__init__(board, bbox, direction=-1, margin_frac=margin_frac)
-
 
 
 class LineToolIcon(IconArtist):
@@ -317,7 +382,8 @@ BUTTON_ARTISTS = {'circle': CircleToolIcon,
                   'select': SelectToolIcon,
                   'grid': GridIcon,
                   'undo': UndoIcon,
-                  'redo': RedoIcon}
+                  'redo': RedoIcon,
+                  'snap_to_grid': SnapToGridIcon}
 
 _DEFAULT_COLOR_BGR = COLORS_BGR[BOARD_LAYOUT['obj_color']]
 
@@ -329,31 +395,42 @@ class FakeBoard:
 
 def test_icon_artists():
 
-    img1 = np.zeros((150, 900, 3), dtype=np.uint8) + np.array(COLORS_BGR['white'], dtype=np.uint8)
-    img2 = np.zeros((150, 900, 3), dtype=np.uint8) + np.array(COLORS_BGR['white'], dtype=np.uint8)
-    icons = {'circle': CircleToolIcon(FakeBoard(), {'x': (10, 70), 'y': (10, 70)}),
-             'line': LineToolIcon(FakeBoard(), {'x': (110, 170), 'y': (10, 70)}),
-             'pencil': PencilToolIcon(FakeBoard(), {'x': (210, 270), 'y': (10, 70)}),
-             'rectangle': RectangleToolIcon(FakeBoard(), {'x': (310, 370), 'y': (10, 70)}),
-             'pan': PanToolIcon(FakeBoard(), {'x': (410, 470), 'y': (10, 70)}),
-             'select': SelectToolIcon(FakeBoard(), {'x': (510, 570), 'y': (10, 70)}),
-             'grid': GridIcon(FakeBoard(), {'x': (610, 670), 'y': (10, 70)}),
-             'undo': UndoIcon(FakeBoard(), {'x': (710, 770), 'y': (10, 70)}),
-             'redo': RedoIcon(FakeBoard(), {'x': (810, 870), 'y': (10, 70)})
+    img1 = np.zeros((120, 800, 3), dtype=np.uint8) + np.array(COLORS_BGR['white'], dtype=np.uint8)
+    img2 = np.zeros((120, 800, 3), dtype=np.uint8) + np.array(COLORS_BGR['white'], dtype=np.uint8)
+
+    spacing = 70
+    x_offset = [0]
+
+    def get_bbox():
+        x = x_offset[0]
+        x_offset[0] += spacing
+        return {'x': (x, x + spacing), 'y': (10, 70)}
+
+    icons = {'circle': CircleToolIcon(FakeBoard(), get_bbox()),
+             'line': LineToolIcon(FakeBoard(),  get_bbox()),
+             'pencil': PencilToolIcon(FakeBoard(),  get_bbox()),
+             'rectangle': RectangleToolIcon(FakeBoard(),  get_bbox()),
+             'pan': PanToolIcon(FakeBoard(), get_bbox()),
+             'select': SelectToolIcon(FakeBoard(), get_bbox()),
+             'grid': GridIcon(FakeBoard(),  get_bbox()),
+             'undo': UndoIcon(FakeBoard(), get_bbox()),
+             'redo': RedoIcon(FakeBoard(),  get_bbox()),
+             'snap_to_grid': SnapToGridIcon(FakeBoard(),  get_bbox()),
+             'clear': ClearIcon(FakeBoard(),  get_bbox()),
              }
 
     for icon in icons.values():
         icon.boxed_render(img1)
 
     # Change colors
-    colors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'black', 'black', 'black']
+    colors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'black', 'black', 'black', 'black', 'neon green']
     for i, icon_n in enumerate(icons):
         print(icon_n)
         icons[icon_n].color_v = COLORS_BGR[colors[i]]
         icons[icon_n].render(img2)
 
     img = np.concatenate((img1, img2), axis=0)
-
+    #cv2.imwrite('icon_artists.png', img)
     cv2.imshow('circle', img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
