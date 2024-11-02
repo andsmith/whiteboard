@@ -67,6 +67,14 @@ def is_numeric(items):
         return False
     return True
 
+def interp_colors(color1, color2, frac):
+    """
+    :param color1: (r, g, b)
+    :param color2: (r, g, b)
+    :param frac: 0-1
+    """
+    return tuple(int(c1 * (1 - frac) + c2 * frac) for c1, c2 in zip(color1, color2))
+
 
 def draw_bbox(img, bbox, color, thickness):
     """
