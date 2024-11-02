@@ -87,12 +87,10 @@ class IconArtist(Renderable, ABC):
             self._draw_ctrl_point(img, ctrl_point)
 
 
-
 class CircleToolIcon(IconArtist):
     """
     Draw a circle taking up the whole bounding box, minus the margin.
     """
-
 
     def _get_perimiter(self):
         x_min, x_max = self._bbox['x'][0], self._bbox['x'][1]
@@ -101,13 +99,11 @@ class CircleToolIcon(IconArtist):
         self._center = (x_min + (x_max - x_min) / 2, y_min + (y_max - y_min) / 2)
         rad = full_rad * (1.0 - self._margin_frac)
         return get_circle_points(self._center, rad)
-    
 
     def _set_geom(self):
         points = self._get_perimiter()
         self._lines = [floats_to_fixed(points)]
         self._ctrl_points = [points[0], self._center]
-
 
 
 class GridIcon(CircleToolIcon):
@@ -118,10 +114,9 @@ class GridIcon(CircleToolIcon):
 
     def __init__(self, board, bbox, margin_frac=None):
         self._heavy_lines = []
-        self._faint_lines = []        
+        self._faint_lines = []
         super().__init__(board, bbox, margin_frac)
         self._faint_color = ((0.5) * np.array(self._obj_color_v) + (0.5) * np.array(self._bkg_color_v)).tolist()
-
 
     def _set_geom(self):
         self._ctrl_points = []  # none of these to draw
@@ -147,12 +142,40 @@ class GridIcon(CircleToolIcon):
         self._heavy_lines = [floats_to_fixed(np.array(line, dtype=np.float64)) for line in heavy_lines]
         self._faint_lines = [floats_to_fixed(np.array(line, dtype=np.float64)) for line in faint_lines]
 
-
     def render(self, img):
         for line in self._heavy_lines:
             cv2.polylines(img, [line], False, self._obj_color_v, lineType=cv2.LINE_AA, thickness=1, shift=PREC_BITS)
         for line in self._faint_lines:
             cv2.polylines(img, [line], False, self._faint_color, lineType=cv2.LINE_AA, thickness=1, shift=PREC_BITS)
+
+
+class UndoRedoIcon(IconArtist):
+    # left, right arrows
+    def __init__(self, board, bbox, direction=1, margin_frac=None):
+        """
+        :param direction: int, 1 for redo, -1 for undo
+        """
+        self._direction = direction
+        super().__init__(board, bbox, margin_frac)
+
+    def _set_geom(self):
+        arrow_rel = [(0.0, 0.5),  # tip
+                     (0.333, 0.2 ), # upper corner
+                     (0.333, 0.4), # upper stem corner
+                     (.9, 0.4), # upper stem end
+                     (.9, 0.6), # lower stem end
+                     (0.333, 0.6), # lower stem corner
+                     (0.333, 0.8)]
+        arrow_rel = np.array(arrow_rel, dtype=np.float64)
+        arrow_rel[:,0]+=.05 
+        print(self.name, self._direction)
+        if self._direction == -1:
+            arrow_rel[:,0] = 1.0 - arrow_rel[:,0]
+        print(arrow_rel)
+        arrow = scale_points_to_bbox(np.array(arrow_rel, dtype=np.float64), self._bbox, margin_frac=self._margin_frac)
+        self._lines = [floats_to_fixed(arrow)]
+
+
 
 
 
@@ -276,6 +299,7 @@ class SelectToolIcon(RectangleToolIcon):
         self.color_v = self._obj_color_v
         super().render(img)
 
+
 # keys should match ToolManager._TOOLS.keys() so buttons can see both.
 BUTTON_ARTISTS = {'circle': CircleToolIcon,
                   'rectangle': RectangleToolIcon,
@@ -303,13 +327,16 @@ def test_icon_artists():
              'rectangle': RectangleToolIcon(FakeBoard(), {'x': (310, 370), 'y': (10, 70)}),
              'pan': PanToolIcon(FakeBoard(), {'x': (410, 470), 'y': (10, 70)}),
              'select': SelectToolIcon(FakeBoard(), {'x': (510, 570), 'y': (10, 70)}),
-             'grid': GridIcon(FakeBoard(), {'x': (610, 670), 'y': (10, 70)})}
+             'grid': GridIcon(FakeBoard(), {'x': (610, 670), 'y': (10, 70)}),
+             'undo': UndoRedoIcon(FakeBoard(), {'x': (710, 770), 'y': (10, 70)}, direction=1),
+             'redo': UndoRedoIcon(FakeBoard(), {'x': (810, 870), 'y': (10, 70)}, direction=-1)
+             }
 
     for icon in icons.values():
         icon.boxed_render(img1)
-    
+
     # Change colors
-    colors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'black', 'neon_green']
+    colors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'black', 'black', 'black']
     for i, icon_n in enumerate(icons):
         icons[icon_n].color_v = COLORS_BGR[colors[i]]
         icons[icon_n].render(img2)
