@@ -25,7 +25,6 @@ class BoardView(object):
         # bounding box of this view within the board, in board coords.
         self.board_bbox = {'x': (origin[0], origin[0] + size[0] / zoom),
                            'y': (origin[1], origin[1] + size[1] / zoom)}
-        print(f"BoardView: {self.board_bbox}")
 
     def __hash__(self) -> int:
         return hash((self.origin, self.zoom, self.size))

@@ -53,14 +53,17 @@ class UIWindow(object):
     def start_pan(self, xy):
         self._pan_start_xy = np.array(xy)
         self._old_view = self.view
+        print(f"Starting pan at {self._pan_start_xy}")
 
     def end_pan(self):
         self._pan_start_xy = None
         self._old_view = None
+        print("Ending pan.")
 
     def pan_to(self, xy):
         rel_xy = np.array(xy) - self._pan_start_xy
         self.view = self._old_view.pan(rel_xy)
+        print(f"Panning to {xy}")
 
     def add_control(self, control):
         self._controls.append(control)
@@ -97,6 +100,7 @@ class UIWindow(object):
         if event == cv2.EVENT_MOUSEMOVE:
             self._update_mouseover((x, y))
             self._cur_xy = (x, y)
+
             if self._control_with_mouse is not None:
                 rv = self._controls[self._control_with_mouse].mouse_move((x, y))
                 if rv == MouseReturnStates.released:
@@ -118,7 +122,7 @@ class UIWindow(object):
                         self._control_with_mouse = i
                     if rv in [MouseReturnStates.captured, MouseReturnStates.released]:
                         return
-                    
+
             rv = self.tools.current_tool.mouse_down((x, y),self)
             if rv == MouseReturnStates.captured:
                 self._tool_has_mouse = True
