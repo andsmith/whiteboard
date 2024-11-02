@@ -7,7 +7,7 @@ from tempfile import mkdtemp
 from vector_manager import VectorManager
 
 
-def test_vectors(show=True):
+def test_vectors(show=False):
     """
     Create a vector manager, add some vectors to it.
     Save it's state, create a new vector manager, load the state, check that the vectors are the same.
@@ -39,7 +39,7 @@ def test_vectors(show=True):
 
     for vec_t in VECS:
         for _ in range(n_each):
-            color = COLORS_RGB[np.random.choice(COLORS)]
+            color = np.random.choice(COLORS)
             vec = vec_t(color, thickness=np.random.randint(1, 5))
             points = _make_pts()
             for pt in points:
@@ -54,6 +54,10 @@ def test_vectors(show=True):
     frame = (np.zeros((display_size[1], display_size[0], 3)) + COLORS_RGB[BKG]).astype(np.uint8)
 
     vm.render(frame, view)
+    if show:
+        cv2.imshow('test_vectors', frame)
+        cv2.waitKey(0)
+
 
     # save it
     temp_dir = mkdtemp()
@@ -78,14 +82,17 @@ def test_vectors(show=True):
 
     # check that the vectors are the same
     for v1, v2 in zip(vm._vectors, vm2._vectors):
-        assert v1 == v2, f"vectors should be the same: {v1.get_data()} != {v2.get_data()}"
+        try:
+            assert v1 == v2, f"vectors should be the same: {v1.get_data()} != {v2.get_data()}"
+        except AssertionError as e:
+            import pprint
+            print(e)
+            pprint.pprint(f"v1: {v1.get_data()}")
+            pprint.pprint(f"v2: {v2.get_data()}")
+            raise e
 
     # render the vectors from the loaded manager
     frame2 = (np.zeros((display_size[1], display_size[0], 3)) + COLORS_RGB[BKG]).astype(np.uint8)
-
-    if show:
-        cv2.imshow('test_vectors', frame)
-        cv2.waitKey(0)
 
     return True
 
@@ -113,10 +120,9 @@ def test_board_view():
 
     for name, bbox in offscreen_bboxes:
         assert not view.sees_bbox(bbox), f"{name} should not be visible {bbox} should not be in {view.board_bbox}"
-    print("test_vectors.py: All tests pass")
 
 
 if __name__ == '__main__':
     test_board_view()
     test_vectors()
-    print("test_vectors.py: All tests pass")
+    print("All tests pass")

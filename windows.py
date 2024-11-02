@@ -53,17 +53,14 @@ class UIWindow(object):
     def start_pan(self, xy):
         self._pan_start_xy = np.array(xy)
         self._old_view = self.view
-        print(f"Starting pan at {self._pan_start_xy}")
 
     def end_pan(self):
         self._pan_start_xy = None
         self._old_view = None
-        print("Ending pan.")
 
     def pan_to(self, xy):
         rel_xy = np.array(xy) - self._pan_start_xy
         self.view = self._old_view.pan(rel_xy)
-        print(f"Panning to {xy}")
 
     def set_zoom(self, zoom):
         self.view.set_zoom(zoom)

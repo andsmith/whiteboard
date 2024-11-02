@@ -5,7 +5,7 @@ from gui_components import Renderable
 import cv2
 
 import numpy as np
-from layout import COLORS_RGB, VECTOR_DEF, EMPTY_BBOX
+from layout import COLORS_BGR, VECTOR_DEF, EMPTY_BBOX
 from abc import ABC, abstractmethod
 from util import get_bbox, PREC_BITS,PREC_SCALE, floats_to_fixed, get_circle_points
 import json
@@ -25,12 +25,12 @@ class Vector(Renderable, ABC):
     def __init__(self, color, thickness):
         """
         :param board: Board object
-        :param color: (r, g, b) tuple
+        :param color: (r, g, b) tuple or string
         :param thickness: int
         """
         self._highlight_level = 0  # 0 = no highlight, 1 = selected  (TODO: 2 = hovered, 3 = ?, ...)
         self._finalized_t = None  # time when the vector was finalized, in epoch.
-        self._color = tuple(color)
+        self._color = COLORS_BGR[color] if isinstance(color, str) else tuple(color)
         self._thickness = thickness
         self._points = []
 

@@ -69,7 +69,6 @@ class VectorManager(object):
     def render(self, img, view):
         #print("Rendering %i vectors" % len(self._vectors))
         for vector in self._vectors:
-            print(vector.name, vector._color, vector._thickness)
             vector.render(img, view)
 
     def mouse_event(self, event, x, y, flags, param):
