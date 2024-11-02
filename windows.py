@@ -60,10 +60,10 @@ class UIWindow(object):
 
     def pan_to(self, xy):
         rel_xy = np.array(xy) - self._pan_start_xy
-        self.view = self._old_view.pan(rel_xy)
+        self.view = self._old_view.get_panned_view(rel_xy)
 
     def set_zoom(self, zoom):
-        self.view.set_zoom(zoom)
+        self.view = self.view.get_zoomed_view(zoom)
 
     def add_control(self, control):
         self._controls.append(control)

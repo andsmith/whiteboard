@@ -7,7 +7,7 @@ import cv2
 import numpy as np
 from layout import COLORS_BGR, VECTOR_DEF, EMPTY_BBOX
 from abc import ABC, abstractmethod
-from util import get_bbox, PREC_BITS,PREC_SCALE, floats_to_fixed, get_circle_points
+from util import get_bbox, PREC_BITS, PREC_SCALE, floats_to_fixed, get_circle_points
 import json
 import time
 
@@ -32,6 +32,7 @@ class Vector(Renderable, ABC):
         self._finalized_t = None  # time when the vector was finalized, in epoch.
         self._color = COLORS_BGR[color] if isinstance(color, str) else tuple(color)
         self._thickness = thickness
+        self.highlighted = False
         self._points = []
 
         super().__init__(self.__class__.__name__, EMPTY_BBOX)
@@ -39,9 +40,16 @@ class Vector(Renderable, ABC):
     def __eq__(self, other):
         # compare timestamps?
         equal = self._color == other._color and \
-              self._thickness == other._thickness and \
-              np.isclose(self._points, other._points).all()
+            self._thickness == other._thickness and \
+            np.isclose(self._points, other._points).all()
         return equal
+
+    def copy(self):
+        c = self.__class__(self._color, self._thickness)
+        c._points = self._points.copy()
+        c._bbox = self._bbox.copy()
+        c._finalized_t = time.perf_counter()  # ???
+        return c
 
     @abstractmethod
     def get_data(self):
@@ -69,6 +77,20 @@ class Vector(Renderable, ABC):
 
     def finalize(self):
         self._finalized_t = time.time()
+        self._centroid = np.mean(self._points, axis=0)
+
+    def get_centroid(self):
+        return self._centroid
+
+    def move_to(self, xy):
+        """
+        Move the vector (centroid) to the given point.
+        :param xy: (x, y) point in board coordinates.
+        """
+        xy = np.array(xy)
+        self._points += xy - self._centroid
+        self._centroid = xy
+        self._bbox = get_bbox(self._points)
 
     def add_point(self, xy, view=None):
         """
@@ -98,17 +120,24 @@ class Vector(Renderable, ABC):
         r._finalized_t = data['timestamp']
         return r
 
+    def _get_color(self, color_v):
+        if self.highlighted:
+            return COLORS_BGR['neon green']
+        return color_v
+
 
 class PencilVec(Vector):
     """
     Pencil stroke connects the sequence of points a line that has the given properties.
     """
     _NAME = 'pencil'
+
     def render(self, img, view):
         if view.sees_bbox(self._bbox):
             coords = [floats_to_fixed(view.pts_to_pixels(self._points))]
             if len(self._points) > 1:
-                cv2.polylines(img, coords, False, self._color, self._thickness, lineType=cv2.LINE_AA, shift=PREC_BITS)
+                color = self._get_color(self._color)
+                cv2.polylines(img, coords, False, color, self._thickness, lineType=cv2.LINE_AA, shift=PREC_BITS)
 
 
 class LineVec(PencilVec):
@@ -116,6 +145,7 @@ class LineVec(PencilVec):
     Line vector connects the first and last points.
     """
     _NAME = 'line'
+
     def add_point(self, xy, view=None):
         # only keep the first and last points:
         xy_board = view.pts_from_pixels(xy) if view is not None else xy
@@ -129,28 +159,49 @@ class CircleVec(LineVec):
     """
     Circle vector is defined by the center and a point on the circumference, a LineVec rendered differently.
     """
+
     def __init__(self, color, thickness):
         super().__init__(color, thickness)
         self._last_view = None  # need to re-sample when this changes
-        self._draw_pts = None
+        self._view_cache = {}  # {view.win_name: (view, draw_pts), ...}
 
-    def _calc(self, view):
-        if len(self._points) < 2:
-            return
-        center =np.array(self._points[0])
+    def add_point(self, xy, view=None):
+        # invalidate cache for all views
+        self._view_cache={}  
+    
+        rv= super().add_point(xy, view)  
+        return rv
+
+    def _recalc_pts(self, view):
+        center = np.array(self._points[0])
         radius = np.linalg.norm(np.array(self._points[1]) - center)
         circle_pts = get_circle_points(center, radius)
-        self._draw_pts = [floats_to_fixed(view.pts_to_pixels(circle_pts))]
+        draw_pts = floats_to_fixed(view.pts_to_pixels(circle_pts))
+        return [draw_pts]
+
+    def _get_draw_points(self, view):
+        """
+        Don't want to recalculate the circle points (on-screen pixel locations) every frame, 
+        only when the view changes.
+        """
+        if len(self._points) < 2:
+            return
+
+        old_view, draw_pts = self._view_cache.get(view.win_name, (None, None))
+        if old_view is None or view != old_view or draw_pts is None:
+            draw_pts = self._recalc_pts(view)
+            self._view_cache[view.win_name] = view, draw_pts
+        return draw_pts
 
     _NAME = 'circle'
+
     def render(self, img, view):
-        
         if view.sees_bbox(self._bbox):
-            if self._last_view is None or view != self._last_view:
-                self._calc(view)
-                self._last_view = view
-            if self._draw_pts is not None:
-                cv2.polylines(img, self._draw_pts, True, self._color, self._thickness, lineType=cv2.LINE_AA, shift=PREC_BITS)
+            draw_pts = self._get_draw_points(view)
+            if draw_pts is not None:
+                color = self._get_color(self._color)
+                cv2.polylines(img, draw_pts, True, color,
+                              self._thickness, lineType=cv2.LINE_AA, shift=PREC_BITS)
 
 
 class RectangleVec(CircleVec):
@@ -158,12 +209,11 @@ class RectangleVec(CircleVec):
     Rectangle vector is defined by two opposite corners, also a LineVec subclass.
     """
     _NAME = 'rectangle'
-    def _calc(self, view):
-        if len(self._points) < 2:
-            return
+
+    def _recalc_pts(self, view):
         x1, y1 = self._points[0]
         x2, y2 = self._points[1]
         x = [x1, x2, x2, x1, x1]
         y = [y1, y1, y2, y2, y1]
         rect_pts = np.array([x, y]).T
-        self._draw_pts = [floats_to_fixed(view.pts_to_pixels(rect_pts))]
+        return [floats_to_fixed(view.pts_to_pixels(rect_pts))]

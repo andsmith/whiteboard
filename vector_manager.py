@@ -3,7 +3,7 @@ from vectors import Vector, PencilVec, LineVec, CircleVec, RectangleVec
 import numpy as np
 from layout import EMPTY_BBOX
 import logging
-from util import in_bbox
+from util import bboxes_intersect
 
 VECTORS = [PencilVec, LineVec, CircleVec, RectangleVec]
 
@@ -17,7 +17,8 @@ class VectorManager(object):
         if load_file:
             self.load(load_file)
 
-        self._vec_in_progress = None
+        self._vecs_in_progress = []
+        self._selected = []
         self._vectors = []
         self._deleted = []  # list of deleted vectors (current stored in self._vectors)
         self._types = {cls.__name__: cls for cls in VECTORS}
@@ -34,7 +35,37 @@ class VectorManager(object):
 
         with open(filename, 'w') as f:
             json.dump([vectors, deleted], f)
+    def get_selected(self):
+        return self._selected
+    def select_vectors(self, vecs):
+        if len(self._vecs_in_progress)> 0:
+            logging.warning("Selecting vectors while vectors in progress, finishing them.")
+            self.finish_vectors()
+        for vec in vecs:
+            if vec not in self._selected:
+                selected = vec.copy()
+                vec.visible = False
+                selected.highlighted = True
+                self._selected.append(selected)
 
+    def deselect_vectors_unchanged(self, vecs=None):
+        if vecs is None:
+            vecs = self._selected
+        for vec in vecs:
+            vec.visible = True
+            vec.highlighted = False
+            self._selected.remove(vec)
+
+    def deselect_vectors_commit(self, vecs=None):
+        if vecs is None:
+            vecs = self._selected
+        for vec in vecs:
+            vec.visible = True
+            vec.highlighted = False
+            self._vectors.append(vec)
+            self._selected.remove(vec)
+
+        
     def load(self, filename):
 
         def _deserialize(string):
@@ -52,20 +83,20 @@ class VectorManager(object):
         Return all vectors that are visible in the bbox.
         i.e. whose bboxes intersect the given bbox.
         """
-        return [vector for vector in self._vectors if vector.inside(bbox)]
+        return [vector for vector in self._vectors if bboxes_intersect(vector.get_bbox(), bbox)]
 
     def start_vector(self, vector, also_finish=False):
-        self._vec_in_progress = vector
+        self._vecs_in_progress.append(vector)
 
         if also_finish:
-            self.finish_vector()
+            self.finish_vectors()
 
-    def finish_vector(self):
-        self._vectors.append(self._vec_in_progress)
-        self._vec_in_progress = None
+    def finish_vectors(self):
+        self._vectors.extend(self._vecs_in_progress)
+        self._vecs_in_progress = []
 
-    def cancel_vector(self):
-        self._vec_in_progress = None
+    def cancel_vectors(self):
+        self._vecs_in_progress = []
 
     def delete(self, vector):
         self._deleted.append(vector)
@@ -84,8 +115,8 @@ class VectorManager(object):
         for vector in self._vectors:
             vector.render(img, view)
 
-        if self._vec_in_progress:
-            self._vec_in_progress.render(img, view)
+        for vec in self._vecs_in_progress:
+            vec.render(img, view)
 
     def mouse_event(self, event, x, y, flags, param):
         # vectors are not interactive, only controlled by tools & controls.

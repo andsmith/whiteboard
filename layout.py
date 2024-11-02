@@ -113,7 +113,8 @@ COLOR_BUTTONS = {'circle_frac': 0.7,  # Circle fits in bbox with this margin
 TOOL_BUTTONS = {'outline_frac': 1.0,  # Fraction of bbox width for outline
                 'margin_frac': 0.1,  # Fraction of bbox width for margin in drawing
                 }
-
+SELECTION_BOX = {'color': 'neon green',
+                 'line_thickness': 8}
 
 ZOOM_BOX = {'color': 'neon green',
             'line_thickness': 2,

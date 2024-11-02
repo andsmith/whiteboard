@@ -11,6 +11,7 @@ from util import unit_to_abs_bbox
 from buttons import ColorButton, ToolButton, ArtistButton
 from button_box import ButtonBox
 from slider import Slider
+import pprint
 # from zoom_view import ZoomViewControl
 
 
@@ -181,6 +182,21 @@ class WhiteboardApp(object):
             t = time.perf_counter()
             if t - t_start > 2:
                 logging.info("FPS: %d" % (n_frames / (t - t_start)))
+
+                def get_vec_strs(vs):
+                    strs = []
+                    for v in vs:
+                        strs.append("%s: (%.2f, %.2f) -> (%.2f, %.2f)" % (v.name,
+                                                                          v._points[0][0], v._points[0][1],
+                                                                          v._points[-1][0], v._points[-1][1]))
+                    return strs
+                # Report vectors:
+                vecs = get_vec_strs(self._vector_manager._vectors)
+                active_vecs = get_vec_strs(self._vector_manager._vecs_in_progress)
+                logging.info("Vectors: %s" % pprint.pformat(vecs))
+                logging.info("Active vectors: %s" % pprint.pformat(active_vecs))
+                
+
                 n_frames, t_start = 0, t
 
         cv2.destroyAllWindows()

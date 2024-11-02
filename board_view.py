@@ -10,6 +10,7 @@ from enum import IntEnum
 from util import in_bbox, bboxes_intersect, interp_colors
 from layout import GRID_SPACING
 
+
 class BoardView(object):
     """
     Represents the view of some part of the board (the cartesian plane) associated
@@ -20,23 +21,24 @@ class BoardView(object):
         self._origin = origin  # upper left pixel in the view has this position in the board.
         self.size = size  # size of the view in pixels (w x h)
         self.win_name = win_name  # name of the window that renders this view.
-        self.set_zoom(zoom)
+        self._zoom = zoom  # pixels per unit
+
+        upper_left = self.pts_from_pixels((0, 0))
+        lower_right = self.pts_from_pixels(self.size)
+        self._board_bbox = {'x': (upper_left[0], lower_right[0]),
+                            'y': (upper_left[1], lower_right[1])}
 
     def get_scope(self):
         return self._zoom, self._origin
 
-    def set_zoom(self, z):
-        self._zoom = z
-        # bounding box of this view within the board, in board coords.
-        upper_left = self.pts_from_pixels((0, 0))
-        lower_right = self.pts_from_pixels(self.size)
-        self._board_bbox = {'x': (upper_left[0], lower_right[0]),
-                           'y': (upper_left[1], lower_right[1])}
+    def get_zoomed_view(self, z):
+
+        return BoardView(self.win_name, self.size, self._origin, z)
 
     def __hash__(self) -> int:
         return hash((self._origin, self._zoom, self.size))
 
-    def pan(self, delta_xy):
+    def get_panned_view(self, delta_xy):
         """
         :param delta_xy: (dx, dy) in pixels
         """
@@ -106,13 +108,12 @@ class BoardView(object):
                 y_px = self.pts_to_pixels((0, y))[1].astype(np.int32)
                 cv2.line(img, (0, y_px), (img.shape[1], y_px), color, 1)
 
-                
         if self._zoom >= 1:
             _draw_grid(GRID_SPACING[0], interp_colors(bkg_color_v, line_color_v, 0.2))
         _draw_grid(GRID_SPACING[1], interp_colors(bkg_color_v, line_color_v, .4))
 
         # if (0, 0) is in view, plot a big dot.
-        #if in_bbox(self._board_bbox, (0, 0)):
+        # if in_bbox(self._board_bbox, (0, 0)):
         #    cv2.circle(img, self.pts_to_pixels((0, 0)).astype(np.int32), 10, line_color_v, -1)
 
 

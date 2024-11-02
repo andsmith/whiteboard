@@ -3,9 +3,9 @@ from abc import ABC, abstractmethod
 import cv2
 import numpy as np
 from vectors import PencilVec, LineVec, RectangleVec, CircleVec
-from layout import COLORS_RGB, CONTROL_LAYOUT, GRID_SPACING
+from layout import COLORS_BGR, CONTROL_LAYOUT, GRID_SPACING ,SELECTION_BOX
 import logging
-
+from util import expand_bbox
 
 class Tool(ABC):
     """
@@ -55,7 +55,7 @@ class Pencil(Tool):
     def mouse_up(self, xy, window):
         if self._active_vec is not None:
             self._active_vec.finalize()
-            self._vecs.finish_vector()
+            self._vecs.finish_vectors()
             self._active_vec = None
         return MouseReturnStates.released
 
@@ -96,7 +96,6 @@ class Line(Pencil):
             xy = self._get_and_check_grid_point(xy, window.view)
             if xy is None:
                 return MouseReturnStates.captured
-            print("ADDING POINT", xy)
             self._active_vec.add_point(xy, window.view)
         return MouseReturnStates.captured
 
@@ -153,12 +152,32 @@ class Select(Rectangle):
 
     def __init__(self, tool_manager, vector_manager):
         super().__init__(tool_manager, vector_manager)
-        self._selected = None
+        self._selection_bbox=None  # whiteboard coordinates
+        self._selecting = True
+        self._color = COLORS_BGR[SELECTION_BOX['color']]
+        self._thickness = SELECTION_BOX['line_thickness']
+        self._move_start_xy_board = None  
 
-    def mouse_up(self, xy, window):
-        print("User stopped selecting, finish this method...")
-        return MouseReturnStates.released
+    def mouse_down(self, xy, window):
+        xy_board = window.view.pts_from_pixels(xy)
+        if self._selecting:
+            self._selection_bbox = {'x': [xy_board[0], xy_board[0]],
+                                    'y': [xy_board[1], xy_board[1]]}
+        else:
+            self._move_start_xy_board = xy_board
+        return MouseReturnStates.captured
 
+    def mouse_move(self, xy, window):
+        xy_board = window.view.pts_from_pixels(xy)
+        if self._selecting:
+            self._selection_bbox=expand_bbox(self._selection_bbox, xy_board)
+            selected = self._vecs.get_vectors_in(self._selection_bbox)
+            print(selected)
+            self._vecs.select_vectors(selected)
+        else:
+            for vec in self._vecs.get_selected():
+                vec.move_to(xy_board)
+        return MouseReturnStates.captured
 
 class ToolManager(object):
     # Manages anything user uses to change the whiteboard.

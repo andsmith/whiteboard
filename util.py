@@ -110,7 +110,15 @@ def in_bbox(bbox, xy_px):
     """
     x, y = xy_px
     return bbox['x'][0] <= x <= bbox['x'][1] and bbox['y'][0] <= y <= bbox['y'][1]
-
+def expand_bbox(bbox, xy):
+    """
+    Expand the bounding box to include the point.
+    """
+    x, y = xy
+    x_min, x_max = bbox['x']
+    y_min, y_max = bbox['y']
+    return {'x': [min(x_min, x), max(x_max, x)],
+            'y': [min(y_min, y), max(y_max, y)]}
 
 def bboxes_intersect(bbox1, bbox2):
     def intervals_overlap(int1, int2):
