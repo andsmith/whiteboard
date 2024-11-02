@@ -81,7 +81,7 @@ class WhiteboardApp(object):
 
         # Tool buttons
         tool_name_grid = CONTROL_LAYOUT['tool_box']['options']
-        tool_buttons = [[ToolButton(cw, tool_name, EMPTY_BBOX)
+        tool_buttons = [[ToolButton(cw, tool_name, EMPTY_BBOX, outline_frac=1.2) if tool_name is not None else None
                          for tool_name in row]
                         for row in tool_name_grid]
         tool_button_box = unit_to_abs_bbox(CONTROL_LAYOUT['tool_box']['loc'], ctrl_win_size)

@@ -26,7 +26,7 @@ COLORS_RGB = {'black': (0, 0, 0),
 
 COLORS_BGR = {k: tuple(reversed(v)) for k, v in COLORS_RGB.items()}
 
-DEFAULT_ICON_MARGIN_FRAC = 0.5
+DEFAULT_ICON_MARGIN_FRAC = 0.35
 
 UI_LINE_THICKNESS = 2
 
@@ -50,7 +50,7 @@ CONTROL_LAYOUT = {
     'zoom_window_margin': 0.1,  # fraction of window size, set zoom to whatever fits the current zoom_window_extent.
 
     # toolbox, strip in the middle of the right side of the window
-    'tool_box': {'options': [['pencil', 'line'], ['rectangle', 'circle'], ['select', 'pan']],
+    'tool_box': {'options': [['pencil', 'line'], ['rectangle', 'circle'], ['select', 'pan'], ['grid', None]],
                  'loc': {'x': [.85, .95],
                          'y': [.3, .6]},
                  'line_widths': [1, 2, 3, 5, 8, 13]},

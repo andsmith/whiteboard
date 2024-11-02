@@ -32,6 +32,7 @@ class IconArtist(Renderable, ABC):
 
         super().__init__(self._get_name(), bbox)
         self._obj_color_v = COLORS_BGR[BOARD_LAYOUT['obj_color']]  # parts of icon drawn whose color doesn't change
+        self._bkg_color_v = COLORS_BGR[BOARD_LAYOUT['bkg_color']]  # parts of icon drawn whose color doesn't change
         self.color_v = COLORS_BGR[BOARD_LAYOUT['obj_color']]  # parts of icon need to be drawn in this color
         self._lines = []  # list of np.int32 arrays of points (each is an Nx2 polyline)
         self._ctrl_points = []  # list of control points (Cx2)
@@ -86,23 +87,76 @@ class IconArtist(Renderable, ABC):
             self._draw_ctrl_point(img, ctrl_point)
 
 
-class CircleIcon(IconArtist):
+
+class CircleToolIcon(IconArtist):
     """
     Draw a circle taking up the whole bounding box, minus the margin.
     """
 
-    def _set_geom(self):
+
+    def _get_perimiter(self):
         x_min, x_max = self._bbox['x'][0], self._bbox['x'][1]
         y_min, y_max = self._bbox['y'][0], self._bbox['y'][1]
         full_rad = min(x_max - x_min, y_max - y_min)/2
         self._center = (x_min + (x_max - x_min) / 2, y_min + (y_max - y_min) / 2)
         rad = full_rad * (1.0 - self._margin_frac)
-        points = get_circle_points(self._center, rad)
+        return get_circle_points(self._center, rad)
+    
+
+    def _set_geom(self):
+        points = self._get_perimiter()
         self._lines = [floats_to_fixed(points)]
         self._ctrl_points = [points[0], self._center]
 
 
-class LineIcon(IconArtist):
+
+class GridIcon(CircleToolIcon):
+    """
+    Icon that turns off/on the background grid.
+    (Should be a small grid, clipped to within a cirlce)
+    """
+
+    def __init__(self, board, bbox, margin_frac=None):
+        self._heavy_lines = []
+        self._faint_lines = []        
+        super().__init__(board, bbox, margin_frac)
+        self._faint_color = ((0.5) * np.array(self._obj_color_v) + (0.5) * np.array(self._bkg_color_v)).tolist()
+
+
+    def _set_geom(self):
+        self._ctrl_points = []  # none of these to draw
+        circle = self._get_perimiter()
+
+        x_min, x_max = np.min(circle, axis=0)[0], np.max(circle, axis=0)[0]
+        y_min, y_max = np.min(circle, axis=0)[1], np.max(circle, axis=0)[1]
+        n_lines = 5
+        heavy_modulus = 3
+        heavy_lines = []
+        faint_lines = []
+        for i in range(n_lines):
+            frac = i / n_lines
+            x = x_min + (x_max - x_min) * frac
+            y = y_min + (y_max - y_min) * frac
+            if i % heavy_modulus == 0:
+                heavy_lines.append([(x_min, y), (x_max, y)])
+                heavy_lines.append([(x, y_min), (x, y_max)])
+            else:
+                faint_lines.append([(x_min, y), (x_max, y)])
+                faint_lines.append([(x, y_min), (x, y_max)])
+
+        self._heavy_lines = [floats_to_fixed(np.array(line, dtype=np.float64)) for line in heavy_lines]
+        self._faint_lines = [floats_to_fixed(np.array(line, dtype=np.float64)) for line in faint_lines]
+
+
+    def render(self, img):
+        for line in self._heavy_lines:
+            cv2.polylines(img, [line], False, self._obj_color_v, lineType=cv2.LINE_AA, thickness=1, shift=PREC_BITS)
+        for line in self._faint_lines:
+            cv2.polylines(img, [line], False, self._faint_color, lineType=cv2.LINE_AA, thickness=1, shift=PREC_BITS)
+
+
+
+class LineToolIcon(IconArtist):
     """
     Draw a line scaled to a smaller square within the unit square (i.e. for the margin)
     show control points at each end
@@ -116,7 +170,7 @@ class LineIcon(IconArtist):
         self._ctrl_points = [line_coords[0], line_coords[1]]
 
 
-class RectangleIcon(CircleIcon):
+class RectangleToolIcon(CircleToolIcon):
     """
     Draw a rectangle in the bbox , with control points at opposite corners.
     """
@@ -130,7 +184,7 @@ class RectangleIcon(CircleIcon):
         self._ctrl_points = [corner_points[0], corner_points[2]]
 
 
-class PencilIcon(CircleIcon):
+class PencilToolIcon(CircleToolIcon):
     """
     Load the "scribble" coordinates, scale to unit square, and draw the scribble.
     The control points are the first and last points.
@@ -152,7 +206,7 @@ class PencilIcon(CircleIcon):
         self._draw_ctrl_point(img, self._ctrl_point2)
 
 
-class PanIcon(IconArtist):
+class PanToolIcon(IconArtist):
     # Four arrows pointing in the cardinal directions.
     def _set_geom(self):
         x_min, x_max = self._bbox['x'][0], self._bbox['x'][1]
@@ -196,7 +250,7 @@ class PanIcon(IconArtist):
         super().render(img)
 
 
-class SelectIcon(RectangleIcon):
+class SelectToolIcon(RectangleToolIcon):
     # A rectangle with a dashed line, control points at opposite_corners.
     _N_DASHES = 6  # A line is broken into this many black segments
 
@@ -223,12 +277,13 @@ class SelectIcon(RectangleIcon):
         super().render(img)
 
 # keys should match ToolManager._TOOLS.keys() so buttons can see both.
-BUTTON_ARTISTS = {'circle': CircleIcon,
-                  'rectangle': RectangleIcon,
-                  'line': LineIcon,
-                  'pencil': PencilIcon,
-                  'pan': PanIcon,
-                  'select': SelectIcon}
+BUTTON_ARTISTS = {'circle': CircleToolIcon,
+                  'rectangle': RectangleToolIcon,
+                  'line': LineToolIcon,
+                  'pencil': PencilToolIcon,
+                  'pan': PanToolIcon,
+                  'select': SelectToolIcon,
+                  'grid': GridIcon}
 
 _DEFAULT_COLOR_BGR = COLORS_BGR[BOARD_LAYOUT['obj_color']]
 
@@ -240,15 +295,15 @@ class FakeBoard:
 
 def test_icon_artists():
 
-    img1 = np.zeros((150, 600, 3), dtype=np.uint8) + np.array(COLORS_BGR['white'], dtype=np.uint8)
-    img2 = np.zeros((150, 600, 3), dtype=np.uint8) + np.array(COLORS_BGR['white'], dtype=np.uint8)
-    icons = {'circle': CircleIcon(FakeBoard(), {'x': (10, 70), 'y': (10, 70)}),
-             'line': LineIcon(FakeBoard(), {'x': (110, 170), 'y': (10, 70)}),
-
-             'pencil': PencilIcon(FakeBoard(), {'x': (210, 270), 'y': (10, 70)}),
-             'rectangle': RectangleIcon(FakeBoard(), {'x': (310, 370), 'y': (10, 70)}),
-             'pan': PanIcon(FakeBoard(), {'x': (410, 470), 'y': (10, 70)}),
-             'select': SelectIcon(FakeBoard(), {'x': (510, 570), 'y': (10, 70)})}
+    img1 = np.zeros((150, 900, 3), dtype=np.uint8) + np.array(COLORS_BGR['white'], dtype=np.uint8)
+    img2 = np.zeros((150, 900, 3), dtype=np.uint8) + np.array(COLORS_BGR['white'], dtype=np.uint8)
+    icons = {'circle': CircleToolIcon(FakeBoard(), {'x': (10, 70), 'y': (10, 70)}),
+             'line': LineToolIcon(FakeBoard(), {'x': (110, 170), 'y': (10, 70)}),
+             'pencil': PencilToolIcon(FakeBoard(), {'x': (210, 270), 'y': (10, 70)}),
+             'rectangle': RectangleToolIcon(FakeBoard(), {'x': (310, 370), 'y': (10, 70)}),
+             'pan': PanToolIcon(FakeBoard(), {'x': (410, 470), 'y': (10, 70)}),
+             'select': SelectToolIcon(FakeBoard(), {'x': (510, 570), 'y': (10, 70)}),
+             'grid': GridIcon(FakeBoard(), {'x': (610, 670), 'y': (10, 70)})}
 
     for icon in icons.values():
         icon.boxed_render(img1)

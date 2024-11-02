@@ -200,8 +200,8 @@ class ToolButton(CircleButton):
                          callbacks=(self._change_tool,), **kwargs)
         
     def move_to(self, xy, new_bbox=None):
-        # move the button and the artist
         super().move_to(xy, new_bbox)
+        # dont' forget to mve 
         self._artist.move_to(xy, new_bbox)
 
     def _change_tool(self, button, new_state, old_state):
@@ -209,7 +209,23 @@ class ToolButton(CircleButton):
             self._window.tools.switch_tool(self.name)
 
     def _draw_icon(self, img):
+        self._artist.color_v = COLORS_BGR[self._window.tools.get_color_thickness()[0]]
         self._artist.render(img)
 
 
-    
+class BinaryOptionButton(CircleButton):
+    """
+    A button representing a binary option the user can select.
+    """
+
+    def __init__(self, window, name, bbox, init_state = False,  **kwargs):
+        super().__init__(window, name, bbox, action_mouseup=True,
+                         callbacks=(self._change_option,), **kwargs)
+        self.state = init_state
+
+    def _change_option(self, button, new_state, old_state):
+        if new_state:
+            self._window.tools.set_option(self.name)
+
+    def _draw_icon(self, img):
+        pass
