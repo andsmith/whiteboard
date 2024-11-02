@@ -69,7 +69,7 @@ class WhiteboardApp(object):
         ctrl_view = BoardView('control',
                               ctrl_win_size,
                               BOARD_LAYOUT['init_origin'],
-                              BOARD_LAYOUT['init_zoom'] * 2)
+                              BOARD_LAYOUT['init_zoom'] * 1.3)
 
         return {'control': ctrl_view, 'board': board_view}, \
             {'control': None, 'board': None}
