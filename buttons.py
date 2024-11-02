@@ -39,6 +39,7 @@ class Button(Control):
         self._selected_color_v = COLORS_BGR[COLOR_BUTTONS['selected_color']]
         self._unselected_color_v = None # COLORS_BGR[COLOR_BUTTONS['unselected_color']]
         self._text_color_v = COLORS_BGR[BOARD_LAYOUT['obj_color']]
+        self._draw_color_v = COLORS_BGR[BOARD_LAYOUT['obj_color']]  # default for drawing
         self._show_bbox = show_bbox
 
     def _set_geom(self):
@@ -141,7 +142,7 @@ class CircleButton(Button, ABC):
         logging.info("Set geom for %s using outline_frac %s, _rad %s" % (self.name, self._outline_frac, self._outline_rad))
 
     def render(self, img):
-        if self.moused_over and not self.state:
+        if self._moused_over and not self.state:
             cv2.polylines(img, [floats_to_fixed(self._select_points)], True,
                           self._mouseover_color_v, lineType=cv2.LINE_AA, thickness=1,shift=PREC_BITS)
         elif self.state:
@@ -181,6 +182,8 @@ class ColorButton(CircleButton):
         # draw color circle
         cv2.fillPoly(img, [floats_to_fixed(self._color_circle_points)],
                      self._color_v, lineType=cv2.LINE_AA,shift=PREC_BITS)
+        cv2.polylines(img, [floats_to_fixed(self._color_circle_points)], True,
+                        self._draw_color_v, lineType=cv2.LINE_AA, thickness=1,shift=PREC_BITS)   
 
 class ToolButton(CircleButton):
     """
@@ -188,7 +191,7 @@ class ToolButton(CircleButton):
     """
 
     def __init__(self, window, name, bbox,  **kwargs):
-        print(kwargs)
+        
         if name not in BUTTON_ARTISTS:
             raise ValueError("Invalid tool name, no artist: %s" % name)
         self._artist = BUTTON_ARTISTS[name](window, bbox)
@@ -203,7 +206,7 @@ class ToolButton(CircleButton):
 
     def _change_tool(self, button, new_state, old_state):
         if new_state:
-            self._window.tools.set_tool(self.name)
+            self._window.tools.switch_tool(self.name)
 
     def _draw_icon(self, img):
         self._artist.render(img)

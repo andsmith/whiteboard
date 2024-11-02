@@ -59,7 +59,6 @@ class Control(Renderable):
         Called when user moved the mouse into the control bbox.
         Control may or may not have the mouse.
         """
-        print(self.name, "mouse_over")
         self._moused_over = True
 
     def mouse_out(self, xy):
@@ -67,8 +66,6 @@ class Control(Renderable):
         Called when user moved the mouse out of the control bbox.
         Control may or may not have the mouse.
         """
-        
-        print(self.name, "mouse_out")
         self._moused_over = False
 
     def _release_mouse(self):

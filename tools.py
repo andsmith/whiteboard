@@ -141,6 +141,7 @@ class ToolManager(object):
     def set_color_thickness(self, color_name=None, thickness=None):
         self._color_n = color_name if color_name is not None else self._color_n
         self._thickness = thickness if thickness is not None else self._thickness
+        logging.info(f"Color/thickness set to: {self._color_n}, {self._thickness}")
 
     def get_color_thickness(self):
         return self._color_n, self._thickness

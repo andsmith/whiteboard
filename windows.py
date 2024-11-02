@@ -82,7 +82,6 @@ class UIWindow(ABC):
     def _update_mouseover(self, xy):
         for i, control in enumerate(self._controls):
             if control.in_bbox(xy):
-                print(control.name, "in bbox")
                 control.mouse_over(xy)
                 self._control_moused_over = i
                 return

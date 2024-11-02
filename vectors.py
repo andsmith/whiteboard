@@ -76,7 +76,7 @@ class Vector(Renderable, ABC):
         :param xy: the point to add, assumed to be pixel coords (ints) if view is not None, else board coords (floats).
         :param view: BoardView object
         """
-        xy_board = view.pixels_to_pts(xy) if view is not None else xy
+        xy_board = view.pts_from_pixels(xy) if view is not None else xy
         self._points.append(xy_board)
         self._bbox = get_bbox(self._points)
 
