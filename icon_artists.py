@@ -184,33 +184,33 @@ class ClearIcon(SnapToGridIcon):
     """
     A rectangular "window" with a big X in it.
     """
+
     def _correct_lines(self, lines):
-        lines  = scale_points_to_bbox(np.array(lines, dtype=np.float64), self._bbox, margin_frac=self._margin_frac)
+        lines = scale_points_to_bbox(np.array(lines, dtype=np.float64), self._bbox, margin_frac=self._margin_frac)
         return floats_to_fixed(lines)
-    
+
     def _set_geom(self):
         self._ctrl_points = []  # none of these to draw
         window_height = .7
         window_width = 0.9
         title_bar_thickness = .05
-        x_margin = 0.09
+        x_margin = 0.12
         v_pad = (1 - window_height) / 2
         h_pad = (1 - window_width) / 2
-        window = [[h_pad, 1.0 - v_pad],
-                  [1.0-h_pad, 1.0 - v_pad],
-                  [1.0-h_pad, v_pad],
-                  [h_pad, v_pad],
-                  [h_pad, 1.0 - v_pad]]
-        title_bar = [[h_pad, 1.0 - v_pad+title_bar_thickness],
-                     [1.0-h_pad, 1.0 - v_pad+title_bar_thickness]]
-        x_lines = [[[h_pad + x_margin, 1.0 - v_pad - title_bar_thickness],
-                   [1.0-h_pad - x_margin, v_pad + title_bar_thickness],]
-                  [ [1.0-h_pad - x_margin, 1.0 - v_pad - title_bar_thickness],
-                   [h_pad + x_margin, v_pad + title_bar_thickness]]]
-        
-        window_lines = self._correct_lines(window) + self._correct_lines(title_bar) + self._correct_lines(x_lines)
-        self._heavy_lines = window_lines
+        window_polyline = [[h_pad, 1.0 - v_pad],
+                           [1.0-h_pad, 1.0 - v_pad],
+                           [1.0-h_pad, v_pad],
+                           [h_pad, v_pad],
+                           [h_pad, 1.0 - v_pad]]
+        title_bar_polyline = [[h_pad, v_pad+title_bar_thickness],
+                              [1.0-h_pad,  v_pad+title_bar_thickness]]
 
+        x_left, x_right = h_pad + x_margin, 1.0 - h_pad - x_margin
+        x_top, x_bottom = v_pad + title_bar_thickness + x_margin, 1.0 - v_pad - x_margin
+        x_lines = [self._correct_lines([(x_left, x_top), (x_right, x_bottom)]),
+                   self._correct_lines([(x_right, x_top), (x_left, x_bottom)])]
+        window_lines = [self._correct_lines(window_polyline), self._correct_lines(title_bar_polyline)]+x_lines
+        self._heavy_lines = window_lines
 
 
 class UndoRedoIcon(IconArtist):
@@ -383,7 +383,8 @@ BUTTON_ARTISTS = {'circle': CircleToolIcon,
                   'grid': GridIcon,
                   'undo': UndoIcon,
                   'redo': RedoIcon,
-                  'snap_to_grid': SnapToGridIcon}
+                  'snap_to_grid': SnapToGridIcon,
+                  'clear': ClearIcon}
 
 _DEFAULT_COLOR_BGR = COLORS_BGR[BOARD_LAYOUT['obj_color']]
 
@@ -430,7 +431,7 @@ def test_icon_artists():
         icons[icon_n].render(img2)
 
     img = np.concatenate((img1, img2), axis=0)
-    #cv2.imwrite('icon_artists.png', img)
+    # cv2.imwrite('icon_artists.png', img)
     cv2.imshow('circle', img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()

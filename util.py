@@ -100,7 +100,7 @@ def get_bbox(points):
     :return: {x:(x_min, x_max), y:(y_min, y_max)}
     """
     points = np.array(points).reshape(-1, 2)
-    return {'x': [np.min(points[:, 0]), np.max(points[:, 1])],
+    return {'x': [np.min(points[:, 0]), np.max(points[:, 0])],
             'y': [np.min(points[:, 1]), np.max(points[:, 1])]}
 
 
