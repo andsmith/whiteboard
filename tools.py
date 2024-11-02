@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import cv2
 import numpy as np
 from vectors import PencilVec, LineVec, RectangleVec, CircleVec
-from layout import COLORS_RGB, CONTROL_LAYOUT
+from layout import COLORS_RGB, CONTROL_LAYOUT, GRID_SPACING
 import logging
 
 
@@ -60,17 +60,53 @@ class Pencil(Tool):
 
 
 class Line(Pencil):
-    def mouse_down(self, xy, window):
+    def __init__(self, tool_manager, vector_manager):
+        super().__init__(tool_manager, vector_manager)
+        self._last_grid_point = None
 
+    def _get_nearest_grid_point(self, xy, view):
+        # For now use global (smallest) grid spacing
+        grid_spacing = GRID_SPACING[0]
+        xy_board = view.pts_from_pixels(xy)
+        grid_x = round(xy_board[0] / grid_spacing) * grid_spacing
+        grid_y = round(xy_board[1] / grid_spacing) * grid_spacing
+        return view.pts_to_pixels((grid_x, grid_y))
+    
+    def _get_and_check_grid_point(self, xy, view):
+        if self._manager.app.get_option('snap_to_grid'):
+            xy = self._get_nearest_grid_point(xy, view)  
+            if self._last_grid_point is not None and np.all(xy == self._last_grid_point):
+                return None
+            self._last_grid_point = xy
+        return xy
+
+    def mouse_down(self, xy, window):
+        xy = self._get_and_check_grid_point(xy, window.view)
+        if xy is None:
+            return MouseReturnStates.captured
         self._active_vec = LineVec(*self._manager.get_color_thickness())
         self._active_vec.add_point(xy, window.view)
+        self._active_vec.add_point(xy, window.view)  # add the same point twice to start
         self._vecs.start_vector(self._active_vec)
-
         return MouseReturnStates.captured
 
 
-class Rectangle(Pencil):
+
+    def mouse_move(self, xy, window):
+        if self._active_vec is not None:
+            xy = self._get_and_check_grid_point(xy, window.view)
+            if xy is None:
+                return MouseReturnStates.captured
+            print("ADDING POINT", xy)
+            self._active_vec.add_point(xy, window.view)
+        return MouseReturnStates.captured
+    
+
+class Rectangle(Line):
     def mouse_down(self, xy, window):
+        if self._manager.app.get_option('snap_to_grid'):
+            xy = self._get_nearest_grid_point(xy, window.view)  
+        self._last_grid_point = xy
         self._active_vec = RectangleVec(*self._manager.get_color_thickness())
         self._active_vec.add_point(xy, window.view)
         self._vecs.start_vector(self._active_vec)
@@ -78,8 +114,11 @@ class Rectangle(Pencil):
         return MouseReturnStates.captured
 
 
-class Circle(Pencil):
+class Circle(Line):
     def mouse_down(self, xy, window):
+        if self._manager.app.get_option('snap_to_grid'):
+            xy = self._get_nearest_grid_point(xy, window.view)  
+        self._last_grid_point = xy
         self._active_vec = CircleVec(*self._manager.get_color_thickness())
         self._active_vec.add_point(xy, window.view)
         self._vecs.start_vector(self._active_vec)
@@ -131,8 +170,9 @@ class ToolManager(object):
               'pan': Pan,
               'select': Select}
 
-    def __init__(self, vector_manager, init_tool_name='pencil', init_color='black', init_thickness=2):
+    def __init__(self, app, vector_manager, init_tool_name='pencil', init_color='black', init_thickness=2):
         self.vectors = vector_manager
+        self.app = app
         self._color_n = init_color
         self._thickness = init_thickness
         self.current_tool = None  # external access to current tool

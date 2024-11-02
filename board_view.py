@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 import logging
 from enum import IntEnum
 from util import in_bbox, bboxes_intersect, interp_colors
-
+from layout import GRID_SPACING
 
 class BoardView(object):
     """
@@ -105,9 +105,11 @@ class BoardView(object):
             for y in range(y_min, y_max + 1, spacing):
                 y_px = self.pts_to_pixels((0, y))[1].astype(np.int32)
                 cv2.line(img, (0, y_px), (img.shape[1], y_px), color, 1)
+
+                
         if self._zoom >= 1:
-            _draw_grid(10, interp_colors(bkg_color_v, line_color_v, 0.2))
-        _draw_grid(100, interp_colors(bkg_color_v, line_color_v, .4))
+            _draw_grid(GRID_SPACING[0], interp_colors(bkg_color_v, line_color_v, 0.2))
+        _draw_grid(GRID_SPACING[1], interp_colors(bkg_color_v, line_color_v, .4))
 
         # if (0, 0) is in view, plot a big dot.
         #if in_bbox(self._board_bbox, (0, 0)):

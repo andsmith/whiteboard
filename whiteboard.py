@@ -19,7 +19,7 @@ class WhiteboardApp(object):
         logging.info("Starting Whiteboard...")
 
         self._vector_manager = VectorManager(state_file)
-        self._tool_manager = ToolManager(self._vector_manager)
+        self._tool_manager = ToolManager(self, self._vector_manager)
         views, zoom_controllers = self._make_zoom()
 
         self._windows = {'control': self._make_control_window(views['control'],
@@ -34,7 +34,7 @@ class WhiteboardApp(object):
         # self._windows['control'].add_control(self._zoom_controllers['control'])
         # self._windows['board'].add_control(self._zoom_controllers['board'])
 
-        self._options = {'show_grid': INIT_OPTIONS['show_grid']}
+        self._options = {k: INIT_OPTIONS[k] for k in INIT_OPTIONS}
 
     def get_option(self, option_name):
         return self._options[option_name]
@@ -70,7 +70,7 @@ class WhiteboardApp(object):
                               ctrl_win_size,
                               BOARD_LAYOUT['init_origin'],
                               BOARD_LAYOUT['init_zoom'] * 2)
-        
+
         return {'control': ctrl_view, 'board': board_view}, \
             {'control': None, 'board': None}
 
@@ -102,17 +102,21 @@ class WhiteboardApp(object):
         tool_control = ButtonBox(cw, 'tool_button_box', tool_button_box, tool_buttons, exclusive=True)
 
         # command buttons
-        command_name_grid = CONTROL_LAYOUT['command_box']['options']  
+        command_name_grid = CONTROL_LAYOUT['command_box']['options']
         command_buttons = {'undo': ArtistButton(cw, 'undo', EMPTY_BBOX, callbacks=(self.undo,), states=(False, )),
                            'redo': ArtistButton(cw, 'redo', EMPTY_BBOX, callbacks=(self.redo,), states=(False, )),
-                           'grid': ArtistButton(cw, 'grid', EMPTY_BBOX, 
+                           'grid': ArtistButton(cw, 'grid', EMPTY_BBOX,
                                                 callbacks=(lambda *_: self.toggle_option('show_grid'),),
-                                                 states = (True, False) if INIT_OPTIONS['show_grid'] else (False, True)),}
+                                                states=(True, False) if INIT_OPTIONS['show_grid'] else (False, True)),
+                           'snap_to_grid': ArtistButton(cw, 'snap_to_grid', EMPTY_BBOX,
+                                                        callbacks=(lambda *_: self.toggle_option('snap_to_grid'),),
+                                                        states=(True, False) if INIT_OPTIONS['snap_to_grid'] else (False, True)), }
         command_buttons = [[command_buttons[command_name] if command_name is not None else None
                             for command_name in row]
                            for row in command_name_grid]
         command_button_bbox = unit_to_abs_bbox(CONTROL_LAYOUT['command_box']['loc'], ctrl_win_size)
-        command_control = ButtonBox(cw, 'command_button_box', command_button_bbox, command_buttons, exclusive=False, show_bbox=False)
+        command_control = ButtonBox(cw, 'command_button_box', command_button_bbox,
+                                    command_buttons, exclusive=False, show_bbox=False)
 
         # zoom slider
         zoom_slider_box = unit_to_abs_bbox(CONTROL_LAYOUT['zoom_slider']['loc'], ctrl_win_size)
@@ -124,8 +128,7 @@ class WhiteboardApp(object):
         cw.add_control(color_control)
         cw.add_control(tool_control)
         cw.add_control(zoom_slider)
-        cw.add_control(command_control)    
-        
+        cw.add_control(command_control)
 
         return cw
 
@@ -162,7 +165,7 @@ class WhiteboardApp(object):
         while True:
 
             # Redraw windows:
-            #for win_name in self._windows:
+            # for win_name in self._windows:
             #    self._windows[win_name].refresh()
             self._windows['control'].refresh(options=dict(show_grid=self.get_option('show_grid')))
             self._windows['board'].refresh(options=dict(show_grid=self.get_option('show_grid')))

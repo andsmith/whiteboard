@@ -29,7 +29,8 @@ COLORS_BGR = {k: tuple(reversed(v)) for k, v in COLORS_RGB.items()}
 DEFAULT_ICON_MARGIN_FRAC = 0.35
 
 UI_LINE_THICKNESS = 2
-INIT_OPTIONS = {'show_grid': True}
+INIT_OPTIONS = {'show_grid': True,
+                'snap_to_grid': False}
 # Board is the main display window
 BOARD_LAYOUT = {'win_size': (1000, 500),
                 'win_name': 'Whiteboard Board',
@@ -44,14 +45,18 @@ BOARD_LAYOUT = {'win_size': (1000, 500),
                                      'orientation': 'vertical'},
                              'label': "Zoom %.1f"}, }
 
+GRID_SPACING = [10, 100]  # in board units  (TEMPORARY)
+
 # Control is the user input window, with the tools and the precise drawing window
 CONTROL_LAYOUT = {
     'win_name': 'Whiteboard Controls',
-    'win_size': (500, 300),
+    'win_size': (700, 450),
     'zoom_window_margin': 0.1,  # fraction of window size, set zoom to whatever fits the current zoom_window_extent.
 
     # toolbox, strip in the middle of the right side of the window
-    'tool_box': {'options': [['pencil', 'line'], ['rectangle', 'circle'], ['select', 'pan']],
+    'tool_box': {'options':  # this defines the layout of the toolbox, each string
+                 # should match something in tool_manager._TOOLS and icon artists.
+                 [['pencil', 'line'], ['rectangle', 'circle'], ['select', 'pan']],
                  'loc': {'x': [.85, .95],
                          'y': [.3, .6]},
                  'line_widths': [1, 2, 3, 5, 8, 13]},
@@ -67,7 +72,8 @@ CONTROL_LAYOUT = {
     # command box (undo/redo, clear, grid, connect, etc.) is at the bottom left, next to the zoom slider
     'command_box': {'loc': {'x': [.15, .45],
                             'y': [.85, .95]},
-                    'options': [['undo','redo', None, None, None, 'grid'],]},
+                    # Should match something in icon_artists
+                    'options': [['undo', 'redo', None, None, 'snap_to_grid', 'grid'],]},
 
 
     # zoom slider-bar, horizontal, accros bottom.
