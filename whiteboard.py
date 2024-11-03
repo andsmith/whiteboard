@@ -8,11 +8,38 @@ from board_view import BoardView
 from vector_manager import VectorManager
 from tools import ToolManager
 from util import unit_to_abs_bbox
-from buttons import ColorButton, ToolButton, ArtistButton
+from buttons import ColorButton, ToolButton, ArtistButton, DialButton
 from button_box import ButtonBox
 from slider import Slider
 import pprint
 # from zoom_view import ZoomViewControl
+
+
+class DialArtist(object):
+    def __init__(self):
+        self._visible = False
+        self._value = None
+        self._bbox = EMPTY_BBOX
+
+    def render(self, img):
+        pass
+
+    def get_bbox(self):
+        return self._bbox
+
+    def move_to(self, pos):
+        pass
+
+    def set_value(self, val):
+        self._value = val
+
+    def pop_up(self):
+        print("DialArtist pop_up")
+        self._visible = True
+
+    def pop_down(self):
+        print("DialArtist pop_down")
+        self._visible = False
 
 
 class WhiteboardApp(object):
@@ -20,7 +47,9 @@ class WhiteboardApp(object):
         logging.info("Starting Whiteboard...")
 
         self._vector_manager = VectorManager(state_file)
-        self._tool_manager = ToolManager(self, self._vector_manager)
+        self._tool_manager = ToolManager(self, self._vector_manager,
+                                         init_thickness=INIT_OPTIONS['thickness'], init_color=INIT_OPTIONS['color'])
+
         views, zoom_controllers = self._make_zoom()
 
         self._windows = {'control': self._make_control_window(views['control'],
@@ -112,7 +141,11 @@ class WhiteboardApp(object):
                            'snap_to_grid': ArtistButton(cw, 'snap_to_grid', EMPTY_BBOX,
                                                         callbacks=(lambda *_: self.toggle_option('snap_to_grid'),),
                                                         states=(True, False) if INIT_OPTIONS['snap_to_grid'] else (False, True)),
-                           'clear': ArtistButton(cw, 'clear', EMPTY_BBOX, callbacks=(self._vector_manager.clear,), states=(False, )), }
+                           'clear': ArtistButton(cw, 'clear', EMPTY_BBOX, callbacks=(self._vector_manager.clear,), states=(False, )),
+                           'thickness': DialButton(cw, 'thickness', EMPTY_BBOX, dial_artist=DialArtist(), scale = 80.,
+                                                   callbacks=(lambda _, x, __: self._tool_manager.set_color_thickness(None, int(x)),),
+                                                   range=CONTROL_LAYOUT['command_box']['thickness_range'], 
+                                                   init_val=self._tool_manager.get_color_thickness()[1]) }
         command_buttons = [[command_buttons[command_name] if command_name is not None else None
                             for command_name in row]
                            for row in command_name_grid]
@@ -186,16 +219,15 @@ class WhiteboardApp(object):
                 def get_vec_strs(vs):
                     strs = []
                     for v in vs:
-                        strs.append("%s: (%.2f, %.2f) -> (%.2f, %.2f)" % (v.name,
-                                                                          v._points[0][0], v._points[0][1],
-                                                                          v._points[-1][0], v._points[-1][1]))
+                        strs.append("%s: (H: %i) (%.2f, %.2f) -> (%.2f, %.2f)" % (v.name, 1 if v.highlighted else 0,
+                                                                                  v._points[0][0], v._points[0][1],
+                                                                                  v._points[-1][0], v._points[-1][1]))
                     return strs
                 # Report vectors:
                 vecs = get_vec_strs(self._vector_manager._vectors)
                 active_vecs = get_vec_strs(self._vector_manager._vecs_in_progress)
                 logging.info("Vectors: %s" % pprint.pformat(vecs))
                 logging.info("Active vectors: %s" % pprint.pformat(active_vecs))
-                
 
                 n_frames, t_start = 0, t
 

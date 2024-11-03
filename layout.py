@@ -30,7 +30,10 @@ DEFAULT_ICON_MARGIN_FRAC = 0.35
 
 UI_LINE_THICKNESS = 2
 INIT_OPTIONS = {'show_grid': True,
-                'snap_to_grid': False}
+                'snap_to_grid': False,
+                'color': 'black',
+                'thickness': 1,}
+
 # Board is the main display window
 BOARD_LAYOUT = {'win_size': (1000, 500),
                 'win_name': 'Whiteboard Board',
@@ -73,7 +76,8 @@ CONTROL_LAYOUT = {
     'command_box': {'loc': {'x': [.15, .45],
                             'y': [.85, .95]},
                     # Should match something in icon_artists
-                    'options': [['undo', 'redo', 'clear', None,'snap_to_grid', 'grid'],]},
+                    'options': [['undo', 'redo', 'clear', 'thickness','snap_to_grid', 'grid'],],
+                    'thickness_range': [1, 20]},
 
 
     # zoom slider-bar, horizontal, accros bottom.

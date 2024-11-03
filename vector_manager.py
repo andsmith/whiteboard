@@ -38,6 +38,7 @@ class VectorManager(object):
     def get_selected(self):
         return self._selected
     def select_vectors(self, vecs):
+        print("Selecting %i vectors" % len(vecs))
         if len(self._vecs_in_progress)> 0:
             logging.warning("Selecting vectors while vectors in progress, finishing them.")
             self.finish_vectors()

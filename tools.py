@@ -172,7 +172,7 @@ class Select(Rectangle):
         if self._selecting:
             self._selection_bbox=expand_bbox(self._selection_bbox, xy_board)
             selected = self._vecs.get_vectors_in(self._selection_bbox)
-            print(selected)
+            print(len(selected))
             self._vecs.select_vectors(selected)
         else:
             for vec in self._vecs.get_selected():
@@ -188,7 +188,7 @@ class ToolManager(object):
               'pan': Pan,
               'select': Select}
 
-    def __init__(self, app, vector_manager, init_tool_name='pencil', init_color='black', init_thickness=2):
+    def __init__(self, app, vector_manager, init_tool_name='pencil', init_color='black', init_thickness=1):
         self.vectors = vector_manager
         self.app = app
         self._color_n = init_color

@@ -123,7 +123,7 @@ class CircleButton(Button, ABC):
         :param outline_frac: fraction of the button radius (half side-length of inscribed square) defining the radius of the outine.
         """
         self._outline_frac = outline_frac if outline_frac is not None else TOOL_BUTTONS['outline_frac']
-        super().__init__(window, name, bbox, callbacks=callbacks, action_mouseup=action_mouseup, show_bbox=False,states=states)
+        super().__init__(window, name, bbox, callbacks=callbacks, action_mouseup=action_mouseup, show_bbox=False, states=states)
         self._set_geom()
 
     def _set_geom(self):
@@ -197,7 +197,7 @@ class ArtistButton(CircleButton):
         self._artist = BUTTON_ARTISTS[name](window, bbox)
 
         super().__init__(window, name, bbox, action_mouseup=False,
-                         callbacks=callbacks,states=states, **kwargs)
+                         callbacks=callbacks, states=states, **kwargs)
 
     def move_to(self, xy, new_bbox=None):
         super().move_to(xy, new_bbox)
@@ -222,3 +222,62 @@ class ToolButton(ArtistButton):
         # change tool
         if new_state:
             self._window.tools.switch_tool(self.name)
+
+
+class DialButton(ArtistButton):
+    """
+    A button that controls a continuous value, like a slider but without a track & tab.
+    User clicks and drags up/down to increase/decrease the value.
+    While user is dragging, a special artist is attached to the mouse cursor to display the value.
+    """
+
+    def __init__(self, window, name, bbox, range, dial_artist, scale=1.0, orientation='horizontal',
+                 init_val=None, callbacks=(), **kwargs):
+        self._scale = scale
+        self._down_xy = None
+        self._orientation = orientation
+        self._dial_artist = dial_artist
+
+        super().__init__(window, name, bbox, callbacks=callbacks,  **kwargs)
+        self._states = range  # re-purpose states for range (min, max)
+        self._state = range[0] if init_val is None else init_val
+        self._old_state = None  # for dragging / deltas
+        self._artist.color_v = self._draw_color_v  # button icon always drawn the same (?)
+
+    def _update_value(self, xy):
+        self._dial_artist.move_to(xy)
+        if self._orientation == 'horizontal':
+            delta = xy[0] - self._down_xy[0]
+        else:
+            delta = xy[1] - self._down_xy[1]
+        delta /= self._scale
+        prev_state = self._state
+        self._state = np.clip(self._state + delta, self._states[0], self._states[1])
+
+        for callback in self._callbacks:
+            callback(self, self._state,  prev_state)
+
+    def mouse_down(self, xy):
+        # instead of calling self._activate, change state and do callbacks here
+        self._down_xy = xy
+        self._old_state = self._state
+        self._dial_artist.pop_up()
+        self._update_value(xy)
+        return self._capture_mouse()
+
+    def mouse_move(self, xy):
+        if self._down_xy is not None:
+            self._update_value(xy)
+            return MouseReturnStates.captured
+
+    def mouse_up(self, xy):
+        if self._down_xy is not None:
+            self._down_xy = None
+            self._dial_artist.pop_down()
+            return MouseReturnStates.released
+        return MouseReturnStates.released
+
+    def _draw_icon(self, img):
+        self._artist.render(img)
+        if self._down_xy is not None:
+            self._dial_artist.render(img)
