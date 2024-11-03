@@ -24,7 +24,7 @@ class IconArtist(Renderable, ABC):
     Draw a simple shape in a bounding box.
     """
 
-    def __init__(self, board, bbox, margin_frac=None):
+    def __init__(self, board, bbox, margin_frac=None, draw_filled=False, closed=True):
         """
         :param margin_frac: float, fraction of the bounding box to leave as margin when drawing icon.
         """
@@ -36,6 +36,8 @@ class IconArtist(Renderable, ABC):
         self.color_v = COLORS_BGR[BOARD_LAYOUT['obj_color']]  # parts of icon need to be drawn in this color
         self._lines = []  # list of np.int32 arrays of points (each is an Nx2 polyline)
         self._ctrl_points = []  # list of control points (Cx2)
+        self._filled = draw_filled
+        self._closed = closed
         self._set_geom()
 
     @classmethod
@@ -70,19 +72,23 @@ class IconArtist(Renderable, ABC):
         cv2.rectangle(img, (x - inner_size, y - inner_size), (x + inner_size, y + inner_size),
                       CTRL_PT_COLORS_BGR['inner'], -1)
 
-    def boxed_render(self, img):
+    def boxed_render(self, img, held=False, moused_over=False):
         """
         Draw the icon on the image w/ a bounding box.
         """
         cv2.rectangle(img, (self._bbox['x'][0], self._bbox['y'][0]),
                       (self._bbox['x'][1], self._bbox['y'][1]), self._obj_color_v, 1)
-        self.render(img)
+        return self.render(img, held, moused_over)
 
-    def render(self, img):
+    def render(self, img, held=False, moused_over=False):
         """
-        Draw the unfilled circle, with the control points.
+        Draw the shape & control points.
         """
-        cv2.polylines(img, self._lines, True, self.color_v, lineType=cv2.LINE_AA, thickness=1, shift=PREC_BITS)
+        thickness = 1 if not held else 2
+        if self._filled:
+            cv2.fillPoly(img, self._lines, self.color_v, lineType=cv2.LINE_AA, shift=PREC_BITS)
+        else:
+            cv2.polylines(img, self._lines, self._closed, self.color_v, lineType=cv2.LINE_AA, thickness=thickness, shift=PREC_BITS)
         for ctrl_point in self._ctrl_points:
             self._draw_ctrl_point(img, ctrl_point)
 
@@ -139,7 +145,7 @@ class SnapToGridIcon(CircleToolIcon):
                                                                   margin_frac=self._margin_frac))
                              for line in vertical_lines[1:-1] + horizontal_lines[1:-1]]
 
-    def render(self, img):
+    def render(self, img, held=False, moused_over=False):
         cv2.polylines(img, self._faint_lines, False, self._faint_color,
                       lineType=cv2.LINE_AA, thickness=1, shift=PREC_BITS)
         cv2.polylines(img, self._heavy_lines, False, self._obj_color_v,
@@ -220,7 +226,7 @@ class UndoRedoIcon(IconArtist):
         :param direction: int, 1 for redo, -1 for undo
         """
         self._direction = direction
-        super().__init__(board, bbox, margin_frac)
+        super().__init__(board, bbox, margin_frac, draw_filled=True, closed=True)
 
     def _set_geom(self):
         arrow_rel = [(0.0, 0.5),  # tip
@@ -237,7 +243,7 @@ class UndoRedoIcon(IconArtist):
         arrow = scale_points_to_bbox(np.array(arrow_rel, dtype=np.float64), self._bbox, margin_frac=self._margin_frac)
         self._lines = [floats_to_fixed(arrow)]
 
-    def render(self, img):
+    def render(self, img, held=False, moused_over=False):
         self.color_v = self._obj_color_v  # don't change color
         super().render(img)
 
@@ -295,7 +301,7 @@ class PencilToolIcon(CircleToolIcon):
         self._ctrl_point1 = points[0]
         self._ctrl_point2 = points[-1]
 
-    def render(self, img):
+    def render(self, img, held=False, moused_over=False):
         cv2.polylines(img, self._lines, False,
                       self.color_v, lineType=cv2.LINE_AA, thickness=1, shift=PREC_BITS)
         self._draw_ctrl_point(img, self._ctrl_point1)
@@ -341,7 +347,7 @@ class PanToolIcon(IconArtist):
 
         self._ctrl_points = [(x_center, y_center)]
 
-    def render(self, img):
+    def render(self, img, held=False, moused_over=False):
         self.color_v = self._obj_color_v
         super().render(img)
 
@@ -368,9 +374,39 @@ class SelectToolIcon(RectangleToolIcon):
         # these are not stored as fixed-point numbers, make them floats again:
         self._ctrl_points = [(x/PREC_SCALE, y/PREC_SCALE) for x, y in fixed_ctrl_points]
 
-    def render(self, img):
+    def render(self, img, held=False, moused_over=False):
         self.color_v = self._obj_color_v
         super().render(img)
+
+
+class LineThicknessIcon(IconArtist):
+    def __init__(self, board, bbox, margin_frac=None):
+        super().__init__(board, bbox, margin_frac, draw_filled=True)
+
+    def _set_geom(self):
+        """
+        Show N horizontal lines of increasing thickness.
+        (render as N rectangles)
+        """
+        n = 4
+        line_vol = 0.4  # fraction of the bbox height taken up by the lines (i.e. not background)
+        line_thicknesses = np.arange(1, n+1)
+        line_thicknesses = line_thicknesses / np.sum(line_thicknesses) * line_vol
+        print(line_thicknesses, np.sum(line_thicknesses))
+        spacing = (1 - line_vol) / (n-1)
+        lines = []
+        y = [0.]
+
+        def _get_rect_points(i):
+            y_bottom, y_top = y[0], y[0]+line_thicknesses[i]
+            rect = np.array([(0, y_bottom), (1, y_bottom), (1, y_top), (0, y_top), (0, y_bottom)])
+            y[0] = y_top + spacing
+            return np.array(rect)
+
+        for i, thickness in enumerate(line_thicknesses):
+            lines.append(_get_rect_points(i))
+        lines = [scale_points_to_bbox(line, self._bbox, margin_frac=self._margin_frac) for line in lines]
+        self._lines = [floats_to_fixed(line) for line in lines]
 
 
 # keys should match ToolManager._TOOLS.keys() so buttons can see both.
@@ -384,7 +420,8 @@ BUTTON_ARTISTS = {'circle': CircleToolIcon,
                   'undo': UndoIcon,
                   'redo': RedoIcon,
                   'snap_to_grid': SnapToGridIcon,
-                  'clear': ClearIcon}
+                  'clear': ClearIcon,
+                  'thickness': LineThicknessIcon}
 
 _DEFAULT_COLOR_BGR = COLORS_BGR[BOARD_LAYOUT['obj_color']]
 
@@ -399,7 +436,7 @@ def test_icon_artists():
     img1 = np.zeros((120, 800, 3), dtype=np.uint8) + np.array(COLORS_BGR['white'], dtype=np.uint8)
     img2 = np.zeros((120, 800, 3), dtype=np.uint8) + np.array(COLORS_BGR['white'], dtype=np.uint8)
 
-    spacing = 70
+    spacing = 60
     x_offset = [0]
 
     def get_bbox():
@@ -418,13 +455,14 @@ def test_icon_artists():
              'redo': RedoIcon(FakeBoard(),  get_bbox()),
              'snap_to_grid': SnapToGridIcon(FakeBoard(),  get_bbox()),
              'clear': ClearIcon(FakeBoard(),  get_bbox()),
+             'thickness': LineThicknessIcon(FakeBoard(),  get_bbox())
              }
 
     for icon in icons.values():
         icon.boxed_render(img1)
 
     # Change colors
-    colors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'black', 'black', 'black', 'black', 'neon green']
+    colors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'black', 'black', 'black', 'black', 'neon green', 'black']
     for i, icon_n in enumerate(icons):
         print(icon_n)
         icons[icon_n].color_v = COLORS_BGR[colors[i]]
