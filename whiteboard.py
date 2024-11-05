@@ -145,7 +145,11 @@ class WhiteboardApp(object):
                            'thickness': DialButton(cw, 'thickness', EMPTY_BBOX, dial_artist=DialArtist(), scale = 80.,
                                                    callbacks=(lambda _, x, __: self._tool_manager.set_color_thickness(None, int(x)),),
                                                    range=CONTROL_LAYOUT['command_box']['thickness_range'], 
-                                                   init_val=self._tool_manager.get_color_thickness()[1]) }
+                                                   init_val=self._tool_manager.get_color_thickness()[1]),
+                            'text_size': DialButton(cw, 'text_size', EMPTY_BBOX, dial_artist=DialArtist(), scale = 80., 
+                                                    callbacks=(lambda _, x, __: self._tool_manager.set_text_size(int(x)),),
+                                                   range=[8, 80], init_val=self._tool_manager.get_text_size())}
+        
         command_buttons = [[command_buttons[command_name] if command_name is not None else None
                             for command_name in row]
                            for row in command_name_grid]

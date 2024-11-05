@@ -73,10 +73,10 @@ CONTROL_LAYOUT = {
                               ['purple', 'green']]},
 
     # command box (undo/redo, clear, grid, connect, etc.) is at the bottom left, next to the zoom slider
-    'command_box': {'loc': {'x': [.15, .45],
+    'command_box': {'loc': {'x': [.15, .55],
                             'y': [.85, .95]},
                     # Should match something in icon_artists
-                    'options': [['undo', 'redo', 'clear', 'thickness','snap_to_grid', 'grid'],],
+                    'options': [['undo', 'redo', 'clear', 'thickness','text_size','snap_to_grid', 'grid'],],
                     'thickness_range': [1, 20]},
 
 

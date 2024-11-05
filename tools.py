@@ -194,6 +194,7 @@ class ToolManager(object):
         self._color_n = init_color
         self._thickness = init_thickness
         self.current_tool = None  # external access to current tool
+        self._text_size = 20
         self._init_tools()
         self.switch_tool(init_tool_name)
 
@@ -212,6 +213,13 @@ class ToolManager(object):
                        'select': Select(self, self.vectors), }
 
         self._tool_list = list(self._tools.values())
+
+    def set_text_size(self, text_size):
+        self._text_size = text_size
+        logging.info(f"Text size set to: {self._text_size}")
+
+    def get_text_size(self):
+        return self._text_size
 
     def set_color_thickness(self, color_name=None, thickness=None):
         self._color_n = color_name if color_name is not None else self._color_n

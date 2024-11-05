@@ -194,7 +194,7 @@ class ArtistButton(CircleButton):
 
         if name not in BUTTON_ARTISTS:
             raise ValueError("Invalid button artist: %s" % name)
-        self._artist = BUTTON_ARTISTS[name](window, bbox)
+        self._artist = BUTTON_ARTISTS[name](bbox)
 
         super().__init__(window, name, bbox, action_mouseup=False,
                          callbacks=callbacks, states=states, **kwargs)
