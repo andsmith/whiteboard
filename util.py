@@ -164,6 +164,16 @@ def get_text_cursor_points( tail_scale=.25, num_points=25):
     pts =  [cursor_left, cursor_right]
     return pts
 
+def translate_lines(lines, dx, dy):
+    """
+    Translate a list of lines.
+    :param lines: list of [[(x1, y1), (x2, y2)]]
+    :param dx: x translation
+    :param dy: y translation
+    """
+    for line in lines:
+        line[:,0] += dx
+        line[:,1] += dy
 
 PREC_BITS = 7  # number of bits to use for precision in fixed-point numbers
 PREC_SCALE = 2 ** PREC_BITS  # for cv2 draw commands

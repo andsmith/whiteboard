@@ -3,7 +3,8 @@ from layout import COLORS_BGR, BOARD_LAYOUT, DEFAULT_ICON_MARGIN_FRAC
 import logging
 import cv2
 import numpy as np
-from util import in_bbox, get_circle_points, floats_to_fixed, PREC_BITS, scale_points_to_bbox, PREC_SCALE, get_text_cursor_points
+from util import (in_bbox, get_circle_points, floats_to_fixed, PREC_BITS, translate_lines,
+                  scale_points_to_bbox, PREC_SCALE, get_text_cursor_points)
 from abc import ABC, abstractmethod
 import json
 
@@ -36,7 +37,7 @@ class IconArtist(Renderable, ABC):
         self.color_v = COLORS_BGR[BOARD_LAYOUT['obj_color']]  # parts of icon need to be drawn in this color
         faintness = 0.4
         self._faint_color_v = (faintness * np.array(self._obj_color_v) +
-                             (1.0-faintness) * np.array(self._bkg_color_v)).tolist()
+                               (1.0-faintness) * np.array(self._bkg_color_v)).tolist()
         self._lines = []  # list of np.int32 arrays of points (each is an Nx2 polyline)
         self._ctrl_points = []  # list of control points (Cx2)
         self._filled = draw_filled
@@ -227,7 +228,7 @@ class UndoRedoIcon(IconArtist):
         :param direction: int, 1 for redo, -1 for undo
         """
         self._direction = direction
-        super().__init__( bbox, margin_frac, draw_filled=True, closed=True)
+        super().__init__(bbox, margin_frac, draw_filled=True, closed=True)
 
     def _set_geom(self):
         arrow_rel = [(0.0, 0.5),  # tip
@@ -382,7 +383,7 @@ class SelectToolIcon(RectangleToolIcon):
 
 class LineThicknessIcon(IconArtist):
     def __init__(self, bbox, margin_frac=None):
-        super().__init__( bbox, margin_frac, draw_filled=True)
+        super().__init__(bbox, margin_frac, draw_filled=True)
 
     def _set_geom(self):
         """
@@ -411,11 +412,11 @@ class LineThicknessIcon(IconArtist):
 
 
 class TextToolIcon(IconArtist):
-    # import from line tool 
+    # import from line tool
 
     def __init__(self, bbox, margin_frac=None):
         super().__init__(bbox, margin_frac, draw_filled=False, closed=False)
-        
+
     def _set_geom(self):
         l_width = 0.45
         cap_height = 0.55
@@ -431,16 +432,49 @@ class TextToolIcon(IconArtist):
                    ((t_mid_x - l_width/2., 1.0 - bottom - cap_height), (t_mid_x + l_width/2., 1.0 - bottom - cap_height)),]
         x += l_width - kern
         x_lines = [((x, 1.0 - bottom), (x + miniscule_size, 1.0 - bottom - miniscule_size)),
-                   ((x+miniscule_size, 1.0 - bottom), (x , 1.0 - bottom - miniscule_size))]
+                   ((x+miniscule_size, 1.0 - bottom), (x, 1.0 - bottom - miniscule_size))]
         letter_lines = T_lines + x_lines
         self._cursor_lines = [floats_to_fixed(scale_points_to_bbox(
             line, self._bbox, margin_frac=self._margin_frac)) for line in cursor]
         self._text_lines = [floats_to_fixed(scale_points_to_bbox(
             line, self._bbox, margin_frac=self._margin_frac)) for line in letter_lines]
-        
+
     def render(self, img, held=False, moused_over=False):
-        cv2.polylines(img, self._cursor_lines, False, self._faint_color_v, lineType=cv2.LINE_AA, thickness=1, shift=PREC_BITS)
-        cv2.polylines(img, self._text_lines, False, self.color_v, lineType=cv2.LINE_AA, thickness=1, shift=PREC_BITS)   
+        cv2.polylines(img, self._cursor_lines, False, self._faint_color_v,
+                      lineType=cv2.LINE_AA, thickness=1, shift=PREC_BITS)
+        cv2.polylines(img, self._text_lines, False, self.color_v, lineType=cv2.LINE_AA, thickness=1, shift=PREC_BITS)
+
+
+class TextSizeIcon(SnapToGridIcon):
+    def __init__(self, bbox, margin_frac=None):
+        super().__init__(bbox, margin_frac)
+
+    def _make_a(self, size):
+        """
+        :param size: float [0, 1], 1 is full height (biggest possible in unit square)
+        :returns: list of lines ((x1, y1), (x2, y2)) to draw the letter A, bottom left corner at (0, 0)
+        """
+        aspect = 0.63
+        bottom = 1.0
+        midline = 0.4  # fraction of the way up the letter A the horizontal line is
+        top = bottom - size
+        width = size * aspect
+        midy, midx = top * midline + bottom * (1.0 - midline), width / 2
+        a_lines = [((0, bottom), (midx, top)),
+                   ((width, bottom), (midx, top)),
+                   ((midx-width/4, midy), (midx+width/4, midy))]
+        return np.array(a_lines)
+
+    def _set_geom(self):
+        """
+        Big A next to a smaller A.
+        """
+        big_a = self._make_a(0.85)
+        small_a = self._make_a(0.35)
+        translate_lines(big_a, 0.5, 0.0)
+        big_a = [scale_points_to_bbox(line, self._bbox, margin_frac=self._margin_frac) for line in big_a]
+        small_a = [scale_points_to_bbox(line, self._bbox, margin_frac=self._margin_frac) for line in small_a]
+        self._heavy_lines = [floats_to_fixed(line) for line in big_a + small_a]
 
 
 # keys should match ToolManager._TOOLS.keys() so buttons can see both.
@@ -456,7 +490,8 @@ BUTTON_ARTISTS = {'circle': CircleToolIcon,
                   'snap_to_grid': SnapToGridIcon,
                   'clear': ClearIcon,
                   'thickness': LineThicknessIcon,
-                  'text': TextToolIcon}
+                  'text': TextToolIcon,
+                  'text_size': TextSizeIcon}
 
 _DEFAULT_COLOR_BGR = COLORS_BGR[BOARD_LAYOUT['obj_color']]
 
@@ -474,28 +509,31 @@ def test_icon_artists():
         x_offset[0] += spacing
         return {'x': (x, x + spacing), 'y': (10, 70)}
 
-    icons = {'circle': CircleToolIcon( get_bbox(), margin_frac=margin_frac),
-             'line': LineToolIcon(  get_bbox(), margin_frac=margin_frac),
-             'pencil': PencilToolIcon(  get_bbox(), margin_frac=margin_frac),
-             'rectangle': RectangleToolIcon(  get_bbox(), margin_frac=margin_frac),
-             'pan': PanToolIcon( get_bbox(), margin_frac=margin_frac),
-             'select': SelectToolIcon( get_bbox(), margin_frac=margin_frac),
-             'grid': GridIcon(  get_bbox(), margin_frac=margin_frac),
-             'undo': UndoIcon( get_bbox(), margin_frac=margin_frac),
-             'redo': RedoIcon(  get_bbox(), margin_frac=margin_frac),
-             'snap_to_grid': SnapToGridIcon(  get_bbox(), margin_frac=margin_frac),
-             'clear': ClearIcon(  get_bbox(), margin_frac=margin_frac),
-             'thickness': LineThicknessIcon(  get_bbox(), margin_frac=margin_frac),
-             'text': TextToolIcon(  get_bbox(), margin_frac=margin_frac)
+    icons = {'circle': CircleToolIcon(get_bbox(), margin_frac=margin_frac),
+             'line': LineToolIcon(get_bbox(), margin_frac=margin_frac),
+             'pencil': PencilToolIcon(get_bbox(), margin_frac=margin_frac),
+             'rectangle': RectangleToolIcon(get_bbox(), margin_frac=margin_frac),
+             'pan': PanToolIcon(get_bbox(), margin_frac=margin_frac),
+             'select': SelectToolIcon(get_bbox(), margin_frac=margin_frac),
+             'grid': GridIcon(get_bbox(), margin_frac=margin_frac),
+             'undo': UndoIcon(get_bbox(), margin_frac=margin_frac),
+             'redo': RedoIcon(get_bbox(), margin_frac=margin_frac),
+             'snap_to_grid': SnapToGridIcon(get_bbox(), margin_frac=margin_frac),
+             'clear': ClearIcon(get_bbox(), margin_frac=margin_frac),
+             'thickness': LineThicknessIcon(get_bbox(), margin_frac=margin_frac),
+             'text': TextToolIcon(get_bbox(), margin_frac=margin_frac),
+             'text_size': TextSizeIcon(get_bbox(), margin_frac=margin_frac)
              }
 
-    for icon in icons.values():
-        icon.boxed_render(img1)
+    for icon_n in icons:
+        # if icon_n=='text_size':
+        #    import ipdb; ipdb.set_trace()
+        icons[icon_n].boxed_render(img1)
 
     # Change colors
     colors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple',
-              'black', 'black', 'black', 'black', 'neon green', 'black', 'blue']
-    
+              'black', 'black', 'black', 'black', 'neon green', 'black', 'blue', 'green']
+
     for i, icon_n in enumerate(icons):
         print(icon_n)
         icons[icon_n].color_v = COLORS_BGR[colors[i]]
