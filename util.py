@@ -138,16 +138,16 @@ def get_circle_points(center, radius, num_points=100):
     return np.array([x, y]).T
 
 
-def get_text_cursor_points(center, height, tail_scale=.15, num_points=25):
+def get_text_cursor_points( tail_scale=.25, num_points=25):
     """
-    Return a classic text cursor shape.
+    Return a classic text cursor shape centered in the unit square.
     :param center: (x, y)
-    :param height: height of the cursor
     :param tail_scale: length of curved portions wrt the middle stem.
     """
+    height=1.0
     stem_height = height * (1.0 - tail_scale)
-    tail_height = height * tail_scale
-    circle_points = get_circle_points(center, tail_height, num_points*4)
+    tail_height = height * tail_scale / 2
+    circle_points = get_circle_points((0.,0.), tail_height, num_points*4)
     quadrants = {'ur': circle_points[:num_points][::-1],  # reverse to end at the vertical part
                  'ul': circle_points[num_points:2*num_points],
                  'll': circle_points[2*num_points:3*num_points],
@@ -156,8 +156,13 @@ def get_text_cursor_points(center, height, tail_scale=.15, num_points=25):
                              quadrants['lr'] + np.array((-tail_height, -stem_height/2)) ))
     cursor_right = np.vstack((quadrants['ul'] + np.array((tail_height, stem_height/2)),
                                 quadrants['ll'] + np.array((tail_height, -stem_height/2)) ))
+    allpts = np.vstack((cursor_left, cursor_right))
+    shift = np.min(allpts, axis=0)
 
-    return [cursor_left, cursor_right]
+    cursor_left -= shift
+    cursor_right -= shift
+    pts =  [cursor_left, cursor_right]
+    return pts
 
 
 PREC_BITS = 7  # number of bits to use for precision in fixed-point numbers
@@ -192,13 +197,14 @@ def scale_points_to_bbox(unit_points, bbox, margin_frac=0.0):
     y_max -= y_pad
     x_scale = x_max - x_min
     y_scale = y_max - y_min
-    return np.array([(x_min + x * x_scale,
+    pts = np.array([(x_min + x * x_scale,
                       y_min + y * y_scale)
                      for x, y in unit_points])
+    return pts
 
 def test_cursor():
     import matplotlib.pyplot as plt
-    cursor_points = get_text_cursor_points((0, 0), 100, tail_scale=.2)
+    cursor_points = get_text_cursor_points()
     for points in cursor_points:
         plt.plot(points[:, 0], points[:, 1])
     plt.gca().set_aspect('equal')

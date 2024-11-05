@@ -3,7 +3,7 @@ from layout import COLORS_BGR, BOARD_LAYOUT, DEFAULT_ICON_MARGIN_FRAC
 import logging
 import cv2
 import numpy as np
-from util import in_bbox, get_circle_points, floats_to_fixed, PREC_BITS, scale_points_to_bbox, PREC_SCALE
+from util import in_bbox, get_circle_points, floats_to_fixed, PREC_BITS, scale_points_to_bbox, PREC_SCALE, get_text_cursor_points
 from abc import ABC, abstractmethod
 import json
 
@@ -24,7 +24,7 @@ class IconArtist(Renderable, ABC):
     Draw a simple shape in a bounding box.
     """
 
-    def __init__(self, board, bbox, margin_frac=None, draw_filled=False, closed=True):
+    def __init__(self, bbox, margin_frac=None, draw_filled=False, closed=True):
         """
         :param margin_frac: float, fraction of the bounding box to leave as margin when drawing icon.
         """
@@ -34,6 +34,9 @@ class IconArtist(Renderable, ABC):
         self._obj_color_v = COLORS_BGR[BOARD_LAYOUT['obj_color']]  # parts of icon drawn whose color doesn't change
         self._bkg_color_v = COLORS_BGR[BOARD_LAYOUT['bkg_color']]  # parts of icon drawn whose color doesn't change
         self.color_v = COLORS_BGR[BOARD_LAYOUT['obj_color']]  # parts of icon need to be drawn in this color
+        faintness = 0.4
+        self._faint_color_v = (faintness * np.array(self._obj_color_v) +
+                             (1.0-faintness) * np.array(self._bkg_color_v)).tolist()
         self._lines = []  # list of np.int32 arrays of points (each is an Nx2 polyline)
         self._ctrl_points = []  # list of control points (Cx2)
         self._filled = draw_filled
@@ -88,7 +91,8 @@ class IconArtist(Renderable, ABC):
         if self._filled:
             cv2.fillPoly(img, self._lines, self.color_v, lineType=cv2.LINE_AA, shift=PREC_BITS)
         else:
-            cv2.polylines(img, self._lines, self._closed, self.color_v, lineType=cv2.LINE_AA, thickness=thickness, shift=PREC_BITS)
+            cv2.polylines(img, self._lines, self._closed, self.color_v,
+                          lineType=cv2.LINE_AA, thickness=thickness, shift=PREC_BITS)
         for ctrl_point in self._ctrl_points:
             self._draw_ctrl_point(img, ctrl_point)
 
@@ -117,13 +121,10 @@ class SnapToGridIcon(CircleToolIcon):
     """
     3x3 grid of lines, with a heavy line from (2,)"""
 
-    def __init__(self, board, bbox, margin_frac=None):
+    def __init__(self, bbox, margin_frac=None):
         self._heavy_lines = []
         self._faint_lines = []
-        super().__init__(board, bbox, margin_frac)
-        faintness = 0.4
-        self._faint_color = (faintness * np.array(self._obj_color_v) +
-                             (1.0-faintness) * np.array(self._bkg_color_v)).tolist()
+        super().__init__(bbox, margin_frac)
 
     def _set_geom(self):
         n_lines = 6
@@ -146,7 +147,7 @@ class SnapToGridIcon(CircleToolIcon):
                              for line in vertical_lines[1:-1] + horizontal_lines[1:-1]]
 
     def render(self, img, held=False, moused_over=False):
-        cv2.polylines(img, self._faint_lines, False, self._faint_color,
+        cv2.polylines(img, self._faint_lines, False, self._faint_color_v,
                       lineType=cv2.LINE_AA, thickness=1, shift=PREC_BITS)
         cv2.polylines(img, self._heavy_lines, False, self._obj_color_v,
                       lineType=cv2.LINE_AA, thickness=1, shift=PREC_BITS)
@@ -221,12 +222,12 @@ class ClearIcon(SnapToGridIcon):
 
 class UndoRedoIcon(IconArtist):
     # left, right arrows
-    def __init__(self, board, bbox, direction=1, margin_frac=None):
+    def __init__(self, bbox, direction=1, margin_frac=None):
         """
         :param direction: int, 1 for redo, -1 for undo
         """
         self._direction = direction
-        super().__init__(board, bbox, margin_frac, draw_filled=True, closed=True)
+        super().__init__( bbox, margin_frac, draw_filled=True, closed=True)
 
     def _set_geom(self):
         arrow_rel = [(0.0, 0.5),  # tip
@@ -249,13 +250,13 @@ class UndoRedoIcon(IconArtist):
 
 
 class UndoIcon(UndoRedoIcon):
-    def __init__(self, board, bbox, margin_frac=None):
-        super().__init__(board, bbox, direction=1, margin_frac=margin_frac)
+    def __init__(self, bbox, margin_frac=None):
+        super().__init__(bbox, direction=1, margin_frac=margin_frac)
 
 
 class RedoIcon(UndoRedoIcon):
-    def __init__(self, board, bbox, margin_frac=None):
-        super().__init__(board, bbox, direction=-1, margin_frac=margin_frac)
+    def __init__(self, bbox, margin_frac=None):
+        super().__init__(bbox, direction=-1, margin_frac=margin_frac)
 
 
 class LineToolIcon(IconArtist):
@@ -380,8 +381,8 @@ class SelectToolIcon(RectangleToolIcon):
 
 
 class LineThicknessIcon(IconArtist):
-    def __init__(self, board, bbox, margin_frac=None):
-        super().__init__(board, bbox, margin_frac, draw_filled=True)
+    def __init__(self, bbox, margin_frac=None):
+        super().__init__( bbox, margin_frac, draw_filled=True)
 
     def _set_geom(self):
         """
@@ -409,6 +410,39 @@ class LineThicknessIcon(IconArtist):
         self._lines = [floats_to_fixed(line) for line in lines]
 
 
+class TextToolIcon(IconArtist):
+    # import from line tool 
+
+    def __init__(self, bbox, margin_frac=None):
+        super().__init__(bbox, margin_frac, draw_filled=False, closed=False)
+        
+    def _set_geom(self):
+        l_width = 0.45
+        cap_height = 0.55
+        miniscule_size = 0.3
+        bottom = cap_height * .3
+        cursor = get_text_cursor_points(tail_scale=.3)
+        kern = 0.03
+
+        x = np.max(cursor[0][:, 0]) + .2
+
+        t_mid_x = x + l_width/2.
+        T_lines = [((t_mid_x, 1.0 - bottom), (t_mid_x, 1.0 - bottom-cap_height)),
+                   ((t_mid_x - l_width/2., 1.0 - bottom - cap_height), (t_mid_x + l_width/2., 1.0 - bottom - cap_height)),]
+        x += l_width - kern
+        x_lines = [((x, 1.0 - bottom), (x + miniscule_size, 1.0 - bottom - miniscule_size)),
+                   ((x+miniscule_size, 1.0 - bottom), (x , 1.0 - bottom - miniscule_size))]
+        letter_lines = T_lines + x_lines
+        self._cursor_lines = [floats_to_fixed(scale_points_to_bbox(
+            line, self._bbox, margin_frac=self._margin_frac)) for line in cursor]
+        self._text_lines = [floats_to_fixed(scale_points_to_bbox(
+            line, self._bbox, margin_frac=self._margin_frac)) for line in letter_lines]
+        
+    def render(self, img, held=False, moused_over=False):
+        cv2.polylines(img, self._cursor_lines, False, self._faint_color_v, lineType=cv2.LINE_AA, thickness=1, shift=PREC_BITS)
+        cv2.polylines(img, self._text_lines, False, self.color_v, lineType=cv2.LINE_AA, thickness=1, shift=PREC_BITS)   
+
+
 # keys should match ToolManager._TOOLS.keys() so buttons can see both.
 BUTTON_ARTISTS = {'circle': CircleToolIcon,
                   'rectangle': RectangleToolIcon,
@@ -421,48 +455,47 @@ BUTTON_ARTISTS = {'circle': CircleToolIcon,
                   'redo': RedoIcon,
                   'snap_to_grid': SnapToGridIcon,
                   'clear': ClearIcon,
-                  'thickness': LineThicknessIcon}
+                  'thickness': LineThicknessIcon,
+                  'text': TextToolIcon}
 
 _DEFAULT_COLOR_BGR = COLORS_BGR[BOARD_LAYOUT['obj_color']]
-
-
-class FakeBoard:
-    def __init__(self):
-        self.default_color_v = _DEFAULT_COLOR_BGR
 
 
 def test_icon_artists():
 
     img1 = np.zeros((120, 800, 3), dtype=np.uint8) + np.array(COLORS_BGR['white'], dtype=np.uint8)
     img2 = np.zeros((120, 800, 3), dtype=np.uint8) + np.array(COLORS_BGR['white'], dtype=np.uint8)
-
-    spacing = 60
-    x_offset = [0]
+    margin_frac = 0.3
+    spacing = 55
+    x_offset = [10]
 
     def get_bbox():
         x = x_offset[0]
         x_offset[0] += spacing
         return {'x': (x, x + spacing), 'y': (10, 70)}
 
-    icons = {'circle': CircleToolIcon(FakeBoard(), get_bbox()),
-             'line': LineToolIcon(FakeBoard(),  get_bbox()),
-             'pencil': PencilToolIcon(FakeBoard(),  get_bbox()),
-             'rectangle': RectangleToolIcon(FakeBoard(),  get_bbox()),
-             'pan': PanToolIcon(FakeBoard(), get_bbox()),
-             'select': SelectToolIcon(FakeBoard(), get_bbox()),
-             'grid': GridIcon(FakeBoard(),  get_bbox()),
-             'undo': UndoIcon(FakeBoard(), get_bbox()),
-             'redo': RedoIcon(FakeBoard(),  get_bbox()),
-             'snap_to_grid': SnapToGridIcon(FakeBoard(),  get_bbox()),
-             'clear': ClearIcon(FakeBoard(),  get_bbox()),
-             'thickness': LineThicknessIcon(FakeBoard(),  get_bbox())
+    icons = {'circle': CircleToolIcon( get_bbox(), margin_frac=margin_frac),
+             'line': LineToolIcon(  get_bbox(), margin_frac=margin_frac),
+             'pencil': PencilToolIcon(  get_bbox(), margin_frac=margin_frac),
+             'rectangle': RectangleToolIcon(  get_bbox(), margin_frac=margin_frac),
+             'pan': PanToolIcon( get_bbox(), margin_frac=margin_frac),
+             'select': SelectToolIcon( get_bbox(), margin_frac=margin_frac),
+             'grid': GridIcon(  get_bbox(), margin_frac=margin_frac),
+             'undo': UndoIcon( get_bbox(), margin_frac=margin_frac),
+             'redo': RedoIcon(  get_bbox(), margin_frac=margin_frac),
+             'snap_to_grid': SnapToGridIcon(  get_bbox(), margin_frac=margin_frac),
+             'clear': ClearIcon(  get_bbox(), margin_frac=margin_frac),
+             'thickness': LineThicknessIcon(  get_bbox(), margin_frac=margin_frac),
+             'text': TextToolIcon(  get_bbox(), margin_frac=margin_frac)
              }
 
     for icon in icons.values():
         icon.boxed_render(img1)
 
     # Change colors
-    colors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'black', 'black', 'black', 'black', 'neon green', 'black']
+    colors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple',
+              'black', 'black', 'black', 'black', 'neon green', 'black', 'blue']
+    
     for i, icon_n in enumerate(icons):
         print(icon_n)
         icons[icon_n].color_v = COLORS_BGR[colors[i]]
