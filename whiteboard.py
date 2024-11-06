@@ -22,7 +22,7 @@ class WhiteboardApp(object):
 
         self._vector_manager = VectorManager(state_file)
         self._tool_manager = ToolManager(self, self._vector_manager)
-        self._tool_manager.set_color_thickness(INIT_OPTIONS['color'],INIT_OPTIONS['thickness'])
+        self._tool_manager.set_color_thickness(INIT_OPTIONS['color'], INIT_OPTIONS['thickness'])
         self._tool_manager.set_text_size(INIT_OPTIONS['font_size'])
         views, zoom_controllers = self._make_zoom()
 
@@ -33,13 +33,21 @@ class WhiteboardApp(object):
                          'board': self._make_board_window(views['board'],
                                                           self._tool_manager,
                                                           self._vector_manager)}
+        self._active_window_n = 'control'
         self._win_titles = {win_kind: self._windows[win_kind].get_name_and_title()[1] for win_kind in self._windows}
         #  Added last, so mouse signals are sent to other controls first.
         # self._windows['control'].add_control(self._zoom_controllers['control'])
         # self._windows['board'].add_control(self._zoom_controllers['board'])
 
         self._options = {k: INIT_OPTIONS[k] for k in INIT_OPTIONS}
-        #self.set_option('snap_to_grid', INIT_OPTIONS['snap_to_grid'])
+        # self.set_option('snap_to_grid', INIT_OPTIONS['snap_to_grid'])
+
+    def set_active_window(self, win_name):
+        print("Setting active window to: %s" % win_name)
+        self._active_window_n = win_name
+
+    def is_active_window(self, win_name):
+        return self._active_window_n == win_name
 
     def get_option(self, option_name):
         return self._options[option_name]
@@ -82,6 +90,7 @@ class WhiteboardApp(object):
     def _make_control_window(self, view, tool_manager, vector_manager):
         ctrl_win_size = CONTROL_LAYOUT['win_size']
         cw = UIWindow('control',
+                      self,
                       view,
                       vector_manager,
                       tool_manager,
@@ -117,15 +126,16 @@ class WhiteboardApp(object):
                                                         callbacks=(lambda *_: self.toggle_option('snap_to_grid'),),
                                                         states=(True, False) if INIT_OPTIONS['snap_to_grid'] else (False, True)),
                            'clear': ArtistButton(cw, 'clear', EMPTY_BBOX, callbacks=(self._vector_manager.clear,), states=(False, )),
-                           'thickness': DialButton(cw, 'thickness', EMPTY_BBOX, dial_artist_t=ThicknessArtist, scale = 80.,
-                                                   callbacks=(lambda _, x, __: self._tool_manager.set_color_thickness(None, int(x)),),
-                                                   range=CONTROL_LAYOUT['command_box']['thickness_range'], 
+                           'thickness': DialButton(cw, 'thickness', EMPTY_BBOX, dial_artist_t=ThicknessArtist, scale=80.,
+                                                   callbacks=(
+                                                       lambda _, x, __: self._tool_manager.set_color_thickness(None, int(x)),),
+                                                   range=CONTROL_LAYOUT['command_box']['thickness_range'],
                                                    init_val=self._tool_manager.get_color_thickness()[1]),
-                           'text_size': DialButton(cw, 'text_size', EMPTY_BBOX, dial_artist_t=TextSizeArtist, scale = 12., 
-                                                    callbacks=(lambda _, x, __: self._tool_manager.set_text_size(int(x)),),
+                           'text_size': DialButton(cw, 'text_size', EMPTY_BBOX, dial_artist_t=TextSizeArtist, scale=12.,
+                                                   callbacks=(lambda _, x, __: self._tool_manager.set_text_size(int(x)),),
                                                    range=[6, 48], init_val=self._tool_manager.get_text_size())
                            }
-        
+
         command_buttons = [[command_buttons[command_name] if command_name is not None else None
                             for command_name in row]
                            for row in command_name_grid]
@@ -156,6 +166,7 @@ class WhiteboardApp(object):
     def _make_board_window(self, view, tool_manager, vector_manager):
         board_win_size = BOARD_LAYOUT['win_size']
         bw = UIWindow('board',
+                      self,
                       view,
                       vector_manager,
                       tool_manager,
@@ -217,10 +228,8 @@ class WhiteboardApp(object):
         if key == 27 or key == ord('q'):
             print("User quit.")
             return False
-        for win_kind in self._windows:
-            if cv2.getWindowProperty(self._win_titles[win_kind], cv2.WND_PROP_VISIBLE):
-                if not self._windows[win_kind].keypress(key):
-                    break
+        if not self._windows[self._active_window_n].keypress(key):
+            return False
         return True
 
 

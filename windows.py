@@ -19,13 +19,14 @@ class UIWindow(object):
     Windows get managers from the board, keep track of which has captured the mouse, where to send mouse/keyboard signals, etc.
     """
 
-    def __init__(self, name, board_view, vector_manager, tool_manager, title, window_size, visible=True,
+    def __init__(self, name,app, board_view, vector_manager, tool_manager, title, window_size, visible=True,
                  win_params=cv2.WINDOW_NORMAL, bkg_color_n='off_white'):
         self._name = name  # (for cv2)
         self._window_size = window_size
         self._win_params = win_params
         self._title = title
         self._visible = visible
+        self._app = app
 
         # for rendering window:
         self._color_v = COLORS_BGR[bkg_color_n]
@@ -83,6 +84,8 @@ class UIWindow(object):
         self.vectors.render(frame, self.view)
         for control in self._controls:
             control.render(frame)
+        if self._app.is_active_window(self._name):
+            self.tools.render(frame, self)
         cv2.imshow(self._title, frame)
 
     def _update_mouseover(self, xy):
@@ -100,6 +103,7 @@ class UIWindow(object):
         Figure out which tool/control has the mouse (if any), or which should get it, 
         then call the appropriate mouse_<event> method
         """
+        self._app.set_active_window(self._name)
         if event == cv2.EVENT_MOUSEMOVE:
             self._update_mouseover((x, y))
             self._cur_xy = (x, y)

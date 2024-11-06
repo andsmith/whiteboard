@@ -34,7 +34,7 @@ class Tool(ABC):
     def mouse_up(self, xy, window):
         pass  # and here too.
 
-    def render(self, img):
+    def render(self, img, window):
         # TODO:  Render cursors here?
         pass
 
@@ -178,6 +178,17 @@ class Select(Rectangle):
             for vec in self._vecs.get_selected():
                 vec.move_to(xy_board)
         return MouseReturnStates.captured
+    
+    def render(self, img, window):
+        # self._selection box is in whiteboard coordinates, convert to pixels and draw a rect
+        if self._selection_bbox is not None:
+            x_min, x_max = self._selection_bbox['x']
+            y_min, y_max = self._selection_bbox['y']
+            x_min, x_max = window.view.pts_to_pixels((x_min, x_max))
+            y_min, y_max = window.view.pts_to_pixels((y_min, y_max))
+            x_min, x_max = int(x_min), int(x_max)
+            y_min, y_max = int(y_min), int(y_max)
+            cv2.rectangle(img, (x_min, y_min), (x_max, y_max), self._color, self._thickness)
 
 class ToolManager(object):
     # Manages anything user uses to change the whiteboard.
@@ -229,5 +240,5 @@ class ToolManager(object):
     def get_color_thickness(self):
         return self._color_n, self._thickness
 
-    def render(self, img):
-        self.current_tool.render(img)
+    def render(self, img, window):
+        self.current_tool.render(img, window)

@@ -111,15 +111,15 @@ EMPTY_BBOX = {'x': [0, 1], 'y': [0, 1]}
 
 COLOR_BUTTONS = {'circle_frac': 0.7,  # Circle fits in bbox with this margin
                  'outline_frac': .9,  # Fraction of bbox width for outline
-                 'mouseover_color': 'neon green',
-                 'selected_color': BOARD_LAYOUT['obj_color'],
+                 'mouseover_color': 'neon green',  # ring around buttons when mouseover
+                 'selected_color': BOARD_LAYOUT['obj_color'],  # or button has state True
                  'unselected_color': 'red'}
 
 TOOL_BUTTONS = {'outline_frac': 1.0,  # Fraction of bbox width for outline
                 'margin_frac': 0.1,  # Fraction of bbox width for margin in drawing
                 }
 SELECTION_BOX = {'color': 'neon green',
-                 'line_thickness': 8}
+                 'line_thickness': 3}
 
 ZOOM_BOX = {'color': 'neon green',
             'line_thickness': 2,
