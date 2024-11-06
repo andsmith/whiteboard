@@ -32,7 +32,8 @@ UI_LINE_THICKNESS = 2
 INIT_OPTIONS = {'show_grid': True,
                 'snap_to_grid': False,
                 'color': 'black',
-                'thickness': 1,}
+                'thickness': 1,
+                'font_size': 12,}
 
 # Board is the main display window
 BOARD_LAYOUT = {'win_size': (1000, 500),
@@ -76,7 +77,7 @@ CONTROL_LAYOUT = {
     'command_box': {'loc': {'x': [.15, .55],
                             'y': [.85, .95]},
                     # Should match something in icon_artists
-                    'options': [['undo', 'redo', 'clear', 'thickness','snap_to_grid', 'grid'],],
+                    'options': [['undo', 'redo', 'clear', 'thickness','text_size','snap_to_grid', 'grid'],],
                     'thickness_range': [1, 20]},
 
 
@@ -123,3 +124,6 @@ SELECTION_BOX = {'color': 'neon green',
 ZOOM_BOX = {'color': 'neon green',
             'line_thickness': 2,
             'reize_corner_frac': 0.2}  # Fraction of box dims for resize corner
+TEXT_TOOL = {'font_size_range': [1.0, 64.0],
+             'font': cv2.FONT_HERSHEY_SIMPLEX,
+             'thickness': 1,}

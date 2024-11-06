@@ -5,7 +5,7 @@ from gui_components import Renderable
 import cv2
 
 import numpy as np
-from layout import COLORS_BGR, VECTOR_DEF, EMPTY_BBOX
+from layout import COLORS_BGR, VECTOR_DEF, EMPTY_BBOX, TEXT_TOOL
 from abc import ABC, abstractmethod
 from util import get_bbox, PREC_BITS, PREC_SCALE, floats_to_fixed, get_circle_points
 import json
@@ -99,6 +99,8 @@ class Vector(Renderable, ABC):
         :param view: BoardView object
         """
         xy_board = view.pts_from_pixels(xy) if view is not None else xy
+        print(self.name, "add_point", xy_board)
+
         self._points.append(xy_board)
         self._bbox = get_bbox(self._points)
 
@@ -167,9 +169,10 @@ class CircleVec(LineVec):
 
     def add_point(self, xy, view=None):
         # invalidate cache for all views
-        self._view_cache={}  
-    
-        rv= super().add_point(xy, view)  
+
+        self._view_cache = {}
+
+        rv = super().add_point(xy, view)
         return rv
 
     def _recalc_pts(self, view):
@@ -217,3 +220,56 @@ class RectangleVec(CircleVec):
         y = [y1, y1, y2, y2, y1]
         rect_pts = np.array([x, y]).T
         return [floats_to_fixed(view.pts_to_pixels(rect_pts))]
+
+
+class TextVec(Vector):
+    """
+    Text vector is defined by a point, a string, and a size.
+    """
+    _NAME = 'text'
+
+    def __init__(self, color, text_size):
+        super().__init__(color, thickness=0)
+        self._text = ""
+        self._text_size = text_size
+        self._font = TEXT_TOOL['font']
+
+    @staticmethod
+    def scale_and_thickness_from_size( size):
+        t_scale = size/40
+        t_thickness = 1
+        if t_scale > .4:
+            t_thickness = 2
+        return t_scale, t_thickness
+    
+    def add_point(self, xy, view=None):
+        print(self.name, "add_point", xy)
+        if view is not None:
+            xy = view.pts_from_pixels(xy)
+        self._points = [xy]
+
+    def add_letters(self, letters):
+        self._text += letters
+
+    def render(self, img, view):
+        if view.sees_bbox(self._bbox):
+            xy = (np.array(view.pts_to_pixels(self._points[0]),dtype=np.int32))  # no high-precision available for cv2.putText
+            color = self._get_color(self._color)
+            t_scale, t_thickness = TextVec.scale_and_thickness_from_size(self._text_size)
+            zoom =view.get_scope()[0]
+            t_scale *= zoom
+            cv2.putText(img, self._text, xy, self._font, float(t_scale), color, t_thickness, cv2.LINE_AA)
+
+    def get_data(self):
+        data = super().get_data()
+        data['text'] = self._text
+        data['text_size'] = self._text_size
+        return data
+
+    @classmethod
+    def from_data(cls, data):
+        r = cls(data['color'], data['thickness'], data['text'], data['text_size'])
+        r._points = data['points']
+        r._bbox = get_bbox(r._points)
+        r._finalized_t = data['timestamp']
+        return r

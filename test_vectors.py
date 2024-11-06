@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from vectors import LineVec, CircleVec, PencilVec, RectangleVec
+from vectors import LineVec, CircleVec, PencilVec, RectangleVec, TextVec
 from layout import COLORS_RGB
 from board_view import BoardView, get_board_view
 from tempfile import mkdtemp
@@ -19,7 +19,7 @@ def test_vectors(show=False):
     COLORS = ['red', 'green', 'blue', 'black']
     BKG = 'off_white'
     w, h = display_size
-    n_each = 50  # create this many test vectors
+    n_each = 1  # create this many test vectors
     n_pts = 20  # number of points to add to each vector
     dist_sd = 3  # standard deviation of the distance between points (random walk)
     vectors = []
@@ -46,11 +46,26 @@ def test_vectors(show=False):
                 vec.add_point(pt)
             vec.finalize()
             vectors.append(vec)
-            vm.start_vector(vec, also_finish=False)
+            vm._vectors.append(vec)  # no way to do this naturally
             all_pts.append(points)
+
+    # Add text vectors
+    strings = ['foo', 'bar', 'baz', 'p(a|b)', "hello world"]
+    for string in strings:
+        font_size = int(np.random.rand(1)*16+6)
+
+        vec = TextVec('black', text_size = font_size)
+        txt_xy = np.random.normal(0, dist_sd * n_pts, 2)
+        vec.add_point(txt_xy)
+        all_pts.append(txt_xy)
+        vec.add_letters(string+"%i"% font_size)
+        vec.finalize()
+        vm._vectors.append(vec)
+        vectors.append(vec)
 
     all_pts = np.vstack(all_pts)
     view = get_board_view('test',all_pts, display_size)
+    print(view.get_scope())
     frame = (np.zeros((display_size[1], display_size[0], 3)) + COLORS_RGB[BKG]).astype(np.uint8)
 
     vm.render(frame, view)
@@ -58,7 +73,7 @@ def test_vectors(show=False):
         cv2.imshow('test_vectors', frame)
         cv2.waitKey(0)
 
-
+    return
     # save it
     temp_dir = mkdtemp()
     save_file = temp_dir + '/test_vectors.json'
@@ -102,7 +117,7 @@ def test_board_view():
     Create a bunch of points in [0, 100] x [0, 10], create a board view that fits them into a 640x480 window.
     Create a few bboxes that should be in the view and a few that should not then check them.
     """
-    np.random.seed(0)
+    #np.random.seed(0)
     size = (640, 480)
     points = np.random.rand(100*2).reshape((100, 2)) * np.array([100, 10])
     view = get_board_view("test",points, size, margin=0.025)
@@ -124,5 +139,5 @@ def test_board_view():
 
 if __name__ == '__main__':
     test_board_view()
-    test_vectors()
+    test_vectors(show=True)
     print("All tests pass")

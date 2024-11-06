@@ -10,7 +10,7 @@ from layout import COLORS_BGR, BOARD_LAYOUT, GRID_SPACING, SELECTION_BOX, EMPTY_
 import logging
 from util import expand_bbox, scale_points_to_bbox, floats_to_fixed
 from gui_components import MouseReturnStates, Renderable
-
+from vectors import TextVec
 
 class PopupDisplay(Renderable, ABC):
     def __init__(self, name, window, margin_frac=0.2):
@@ -93,20 +93,11 @@ class ThicknessArtist(PopupDisplay):
         #cv2.putText(img, str(disp_val), self._text_loc, cv2.FONT_HERSHEY_SIMPLEX, self._text_size, self._draw_color_v)  
 
         
-class TextSizeArtist(PopupDisplay):
-    def __init__(self, control, bbox):
-        super().__init__('text_size', control, bbox)
-
-    def _set_geom(self):
-        x_min, x_max = self._bbox['x']
-        y_min, y_max = self._bbox['y']
-
-        w, h = x_max - x_min, y_max - y_min
-
-        indent = w * self._margin_frac
-        self._text_loc = (x_min + indent, y_max - indent)
-        self._text_size = 1
+class TextSizeArtist(ThicknessArtist):
 
     def render(self, img, disp_val):
         self._render_bkg(img)
-        cv2.putText(img, "Text size:  %s" % disp_val, self._text_loc, cv2.FONT_HERSHEY_SIMPLEX, disp_val, self._draw_color_v) 
+        print(disp_val)
+        scale, thickness = TextVec.scale_and_thickness_from_size(disp_val)
+        cv2.putText(img, "Scale %.2f" % disp_val, self._text_loc, cv2.FONT_HERSHEY_SIMPLEX, 
+                    scale*2, self._draw_color_v, thickness=thickness) 
