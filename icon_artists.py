@@ -394,7 +394,6 @@ class LineThicknessIcon(IconArtist):
         line_vol = 0.4  # fraction of the bbox height taken up by the lines (i.e. not background)
         line_thicknesses = np.arange(1, n+1)
         line_thicknesses = line_thicknesses / np.sum(line_thicknesses) * line_vol
-        print(line_thicknesses, np.sum(line_thicknesses))
         spacing = (1 - line_vol) / (n-1)
         lines = []
         y = [0.]

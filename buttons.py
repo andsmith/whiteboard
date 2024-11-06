@@ -231,21 +231,21 @@ class DialButton(ArtistButton):
     While user is dragging, a special artist is attached to the mouse cursor to display the value.
     """
 
-    def __init__(self, window, name, bbox, range, dial_artist, scale=1.0, orientation='horizontal',
+    def __init__(self, window, name, bbox, range, dial_artist_t, scale=1.0, orientation='horizontal',
                  init_val=None, callbacks=(), **kwargs):
         self._scale = scale
         self._down_xy = None
         self._orientation = orientation
-        self._dial_artist = dial_artist
 
         super().__init__(window, name, bbox, callbacks=callbacks,  **kwargs)
         self._states = range  # re-purpose states for range (min, max)
         self._state = range[0] if init_val is None else init_val
         self._old_state = None  # for dragging / deltas
-        self._artist.color_v = self._draw_color_v  # button icon always drawn the same (?)
+
+
+        self._dial_artist = dial_artist_t( "%s_artist" % name,window)
 
     def _update_value(self, xy):
-        self._dial_artist.move_to(xy)
         if self._orientation == 'horizontal':
             delta = xy[0] - self._down_xy[0]
         else:
@@ -280,4 +280,4 @@ class DialButton(ArtistButton):
     def _draw_icon(self, img):
         self._artist.render(img)
         if self._down_xy is not None:
-            self._dial_artist.render(img)
+            self._dial_artist.render(img, self._state)

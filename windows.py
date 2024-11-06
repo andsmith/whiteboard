@@ -47,6 +47,9 @@ class UIWindow(object):
         self.tools = tool_manager
         self._controls = []
 
+    def get_size(self):
+        return self._window_size
+
     def get_name_and_title(self):
         return self._name, self._title
 

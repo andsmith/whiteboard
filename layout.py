@@ -40,7 +40,7 @@ BOARD_LAYOUT = {'win_size': (1000, 500),
                 'bkg_color': 'off_white',  # shared w/control win
                 'obj_color': 'dark_dark_gray',  # also shared
                 'init_zoom': 1.0,
-                'init_origin': (-15, -15),
+                'init_origin': (-20, -17),
                 'init_zoom_window_extent': {'x': (0.05, 0.5),  # upper left corner
                                             'y': (0.05, 0.5)},
                 'zoom_bar': {'loc': {'x': [.85, .95],
@@ -76,7 +76,7 @@ CONTROL_LAYOUT = {
     'command_box': {'loc': {'x': [.15, .55],
                             'y': [.85, .95]},
                     # Should match something in icon_artists
-                    'options': [['undo', 'redo', 'clear', 'thickness','text_size','snap_to_grid', 'grid'],],
+                    'options': [['undo', 'redo', 'clear', 'thickness','snap_to_grid', 'grid'],],
                     'thickness_range': [1, 20]},
 
 

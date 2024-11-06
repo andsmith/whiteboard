@@ -12,34 +12,8 @@ from buttons import ColorButton, ToolButton, ArtistButton, DialButton
 from button_box import ButtonBox
 from slider import Slider
 import pprint
+from popup_display import TextSizeArtist, ThicknessArtist
 # from zoom_view import ZoomViewControl
-
-
-class DialArtist(object):
-    def __init__(self):
-        self._visible = False
-        self._value = None
-        self._bbox = EMPTY_BBOX
-
-    def render(self, img):
-        pass
-
-    def get_bbox(self):
-        return self._bbox
-
-    def move_to(self, pos):
-        pass
-
-    def set_value(self, val):
-        self._value = val
-
-    def pop_up(self):
-        print("DialArtist pop_up")
-        self._visible = True
-
-    def pop_down(self):
-        print("DialArtist pop_down")
-        self._visible = False
 
 
 class WhiteboardApp(object):
@@ -142,13 +116,14 @@ class WhiteboardApp(object):
                                                         callbacks=(lambda *_: self.toggle_option('snap_to_grid'),),
                                                         states=(True, False) if INIT_OPTIONS['snap_to_grid'] else (False, True)),
                            'clear': ArtistButton(cw, 'clear', EMPTY_BBOX, callbacks=(self._vector_manager.clear,), states=(False, )),
-                           'thickness': DialButton(cw, 'thickness', EMPTY_BBOX, dial_artist=DialArtist(), scale = 80.,
+                           'thickness': DialButton(cw, 'thickness', EMPTY_BBOX, dial_artist_t=ThicknessArtist, scale = 80.,
                                                    callbacks=(lambda _, x, __: self._tool_manager.set_color_thickness(None, int(x)),),
                                                    range=CONTROL_LAYOUT['command_box']['thickness_range'], 
                                                    init_val=self._tool_manager.get_color_thickness()[1]),
-                            'text_size': DialButton(cw, 'text_size', EMPTY_BBOX, dial_artist=DialArtist(), scale = 80., 
-                                                    callbacks=(lambda _, x, __: self._tool_manager.set_text_size(int(x)),),
-                                                   range=[8, 80], init_val=self._tool_manager.get_text_size())}
+                           #'text_size': DialButton(cw, 'text_size', EMPTY_BBOX, dial_artist_t=ThicknessArtist, scale = 80., 
+                           #                         callbacks=(lambda _, x, __: self._tool_manager.set_text_size(int(x)),),
+                           #                        range=[8, 80], init_val=self._tool_manager.get_text_size())
+                           }
         
         command_buttons = [[command_buttons[command_name] if command_name is not None else None
                             for command_name in row]
