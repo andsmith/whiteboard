@@ -476,6 +476,77 @@ class TextSizeIcon(SnapToGridIcon):
         self._heavy_lines = [floats_to_fixed(line) for line in big_a + small_a]
 
 
+class PlaceholderIcon(IconArtist):
+    """
+    Write a small amount of text instead of drawing something.
+    """
+
+    def __init__(self, bbox, text, color=None, margin_frac=None):
+        self._font = cv2.FONT_HERSHEY_SIMPLEX
+        self._thickness = 1
+        self._mouseover_color_v = COLORS_BGR['neon green']
+        self._hold_color_v = COLORS_BGR['black']
+
+        self._text = text
+        super().__init__(bbox, margin_frac)
+
+    def _set_geom(self):
+        # determine text scaling so text fits within margin of bbox
+        (width, height), baseline = cv2.getTextSize(self._text, self._font, 1, self._thickness)
+        x_min, x_max = self._bbox['x'][0], self._bbox['x'][1]
+        y_min, y_max = self._bbox['y'][0], self._bbox['y'][1]
+        x_margin = (x_max - x_min) * self._margin_frac/2
+        y_margin = (y_max - y_min) * self._margin_frac/2
+
+        self._scale = min((x_max - x_min - 2 * x_margin) / width,
+                            (y_max - y_min - 2 * y_margin) / height)
+        self._txt_pos = ((x_max + x_min)/2 - width * self._scale/2,
+                          (y_max + y_min)/2 + height * self._scale/2)
+        
+        if isinstance(self, EraseIcon):
+            print("Erase bbox:", self._bbox) 
+
+    def render(self, img, held=False, moused_over=False):
+        """
+        Draw the bbox in obj_color, and the optional mouse boxes.
+        Write the text.
+        """
+        thickness = 1
+        if moused_over:
+            color = self._mouseover_color_v
+        elif held:
+            color = self._hold_color_v
+            thickness = 2
+        else:
+            color = self._obj_color_v
+
+        cv2.rectangle(img, (self._bbox['x'][0], self._bbox['y'][0]),
+                      (self._bbox['x'][1], self._bbox['y'][1]), color, thickness)
+
+        cv2.putText(img, self._text, (int(self._txt_pos[0]), int(self._txt_pos[1])),
+                    self._font, self._scale, color, self._thickness, cv2.LINE_AA)
+
+
+class EraseIcon(PlaceholderIcon):
+    def __init__(self, bbox, margin_frac=None):
+        super().__init__(bbox, 'erase', margin_frac=margin_frac)
+
+
+class MoveIcon(PlaceholderIcon):
+    def __init__(self, bbox, margin_frac=None):
+        super().__init__(bbox, 'move', margin_frac=margin_frac)
+
+
+class ResizeIcon(PlaceholderIcon):
+    def __init__(self, bbox, margin_frac=None):
+        super().__init__(bbox, 'resize', margin_frac=margin_frac)
+
+
+class RotateIcon(PlaceholderIcon):
+    def __init__(self, bbox, margin_frac=None):
+        super().__init__(bbox, 'rotate', margin_frac=margin_frac)
+
+
 # keys should match ToolManager._TOOLS.keys() so buttons can see both.
 BUTTON_ARTISTS = {'circle': CircleToolIcon,
                   'rectangle': RectangleToolIcon,
@@ -490,23 +561,36 @@ BUTTON_ARTISTS = {'circle': CircleToolIcon,
                   'clear': ClearIcon,
                   'thickness': LineThicknessIcon,
                   'text': TextToolIcon,
-                  'text_size': TextSizeIcon}
+                  'text_size': TextSizeIcon,
+                    'erase': EraseIcon,
+                    'move': MoveIcon,
+                    'resize': ResizeIcon,
+                    'rotate': RotateIcon,
+
+                  }
+
 
 _DEFAULT_COLOR_BGR = COLORS_BGR[BOARD_LAYOUT['obj_color']]
 
 
 def test_icon_artists():
-
-    img1 = np.zeros((120, 800, 3), dtype=np.uint8) + np.array(COLORS_BGR['white'], dtype=np.uint8)
-    img2 = np.zeros((120, 800, 3), dtype=np.uint8) + np.array(COLORS_BGR['white'], dtype=np.uint8)
+    w = 700
+    img1 = np.zeros((200, w, 3), dtype=np.uint8) + np.array(COLORS_BGR['white'], dtype=np.uint8)
+    img2 = np.zeros((200, w, 3), dtype=np.uint8) + np.array(COLORS_BGR['white'], dtype=np.uint8)
     margin_frac = 0.3
     spacing = 55
-    x_offset = [10]
+    offset_xy = [10, 10]
+    height = 55
 
     def get_bbox():
-        x = x_offset[0]
-        x_offset[0] += spacing
-        return {'x': (x, x + spacing), 'y': (10, 70)}
+        if offset_xy[0] > w - 100:
+            offset_xy[0] = 10
+            offset_xy[1] += height
+        x = offset_xy[0]
+        offset_xy[0] += spacing
+        y = offset_xy[1]
+        print(x, y)
+        return {'x': (x, x + spacing), 'y': (y, y+height)}
 
     icons = {'circle': CircleToolIcon(get_bbox(), margin_frac=margin_frac),
              'line': LineToolIcon(get_bbox(), margin_frac=margin_frac),
@@ -521,7 +605,12 @@ def test_icon_artists():
              'clear': ClearIcon(get_bbox(), margin_frac=margin_frac),
              'thickness': LineThicknessIcon(get_bbox(), margin_frac=margin_frac),
              'text': TextToolIcon(get_bbox(), margin_frac=margin_frac),
-             'text_size': TextSizeIcon(get_bbox(), margin_frac=margin_frac)
+             'text_size': TextSizeIcon(get_bbox(), margin_frac=margin_frac),
+                'erase': EraseIcon(get_bbox(), margin_frac=margin_frac),
+                'move': MoveIcon(get_bbox(), margin_frac=margin_frac),
+                'resize': ResizeIcon(get_bbox(), margin_frac=margin_frac),
+                'rotate': RotateIcon(get_bbox(), margin_frac=margin_frac),
+
              }
 
     for icon_n in icons:
@@ -532,6 +621,9 @@ def test_icon_artists():
     # Change colors
     colors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple',
               'black', 'black', 'black', 'black', 'neon green', 'black', 'blue', 'green']
+    
+    if len(colors) < len(icons):
+        colors += ['black'] * (len(icons) - len(colors))
 
     for i, icon_n in enumerate(icons):
         print(icon_n)
